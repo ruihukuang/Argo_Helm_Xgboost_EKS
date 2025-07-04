@@ -1,0 +1,21 @@
+nginx:
+  name: nginx-deployment
+  namespace: default-namespace
+  serviceName: nginx-service
+  configName: nginx-config
+  appLabel: nginx
+
+app:
+  name: your-app
+  namespace: default-namespace
+  serviceName: your-app-service
+  appLabel: your-app
+  image: your-account-id.dkr.ecr.your-region.amazonaws.com/your-repository-name:latest
+  replicas: 2
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
