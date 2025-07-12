@@ -3,23 +3,40 @@ on:
   push:
     branches:
       - main
+
+permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v1
-      with:
-        version: 'latest'
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-west-2  # Change to your region
-    - name: Update kubeconfig
-      run: aws eks update-kubeconfig --name your-cluster-name --region us-west-2
+  
     - name: Apply Argo CD Application
       run: kubectl apply -f my-app-argo-app.yaml -n argocd
+
+
+    - name: Get Bastion Host Public IP
+      id: bastion_ip
+      run: |
+        bastion_ip=$(aws cloudformation describe-stacks --stack-name BastionHostStack --query "Stacks[0].Outputs[?OutputKey=='BastionPublicIP'].OutputValue" --output text)
+        echo "::set-output name=ip::$bastion_ip"
+
+    - name: Create SSH key file
+      run: |
+        echo "${{ secrets.SSH_KEY }}" > key.pem
+        chmod 600 key.pem
+
+    - name: SSH to Bastion Host and Update Kubeconfig
+      env:
+        BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
+          set -x  # Enable command tracing
+          aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
+          kubectl get nodes
+          # Apply Argo CD Application
+          kubectl apply -f my-app-argo-app.yaml -n argocd
+        EOF
