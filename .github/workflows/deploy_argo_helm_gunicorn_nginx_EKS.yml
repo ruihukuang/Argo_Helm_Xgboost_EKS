@@ -40,6 +40,6 @@ jobs:
           kubectl get nodes
           kubectl create namespace my-app-test
           # Apply Argo CD Application
-           wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
+          wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
           kubectl apply -f my-app-argo-app.yaml
         EOF
