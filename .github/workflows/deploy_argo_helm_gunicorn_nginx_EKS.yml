@@ -14,8 +14,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
   
-    - name: Apply Argo CD Application
-      run: kubectl apply -f my-app-argo-app.yaml -n argocd
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+         role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
+         aws-region: ${{ secrets.REGION }}
 
 
     - name: Get Bastion Host Public IP
@@ -38,5 +41,6 @@ jobs:
           aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
           kubectl get nodes
           # Apply Argo CD Application
+          curl -O https://raw.githubusercontent.com/ruihukuang/prometheus_grafana_Argo_Helm/main/my-app-argo-app.yaml
           kubectl apply -f my-app-argo-app.yaml -n argocd
         EOF
