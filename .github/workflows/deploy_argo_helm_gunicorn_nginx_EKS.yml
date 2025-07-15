@@ -1,0 +1,45 @@
+name: Deploy to Argo CD on EKS
+on:
+ workflow_dispatch:
+
+permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+  
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+         role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
+         aws-region: ${{ secrets.REGION }}
+
+
+    - name: Get Bastion Host Public IP
+      id: bastion_ip
+      run: |
+        bastion_ip=$(aws cloudformation describe-stacks --stack-name BastionHostStack --query "Stacks[0].Outputs[?OutputKey=='BastionPublicIP'].OutputValue" --output text)
+        echo "::set-output name=ip::$bastion_ip"
+
+    - name: Create SSH key file
+      run: |
+        echo "${{ secrets.SSH_KEY }}" > key.pem
+        chmod 600 key.pem
+
+    - name: SSH to Bastion Host and Update Kubeconfig
+      env:
+        BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
+          set -x  # Enable command tracing
+          aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
+          kubectl get nodes
+          kubectl create namespace my-app-test
+          # Apply Argo CD Application
+          curl -O https://raw.githubusercontent.com/ruihukuang/prometheus_grafana_Argo_Helm/main/my-app-argo-app.yaml
+          kubectl apply -f my-app-argo-app.yaml -n argocd
+        EOF

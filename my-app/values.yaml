@@ -1,0 +1,22 @@
+nginx:
+  name: nginx-deployment
+  namespace: my-app-test
+  serviceName: nginx-service
+  configName: nginx-config
+  appLabel: nginx
+
+app:
+  name: my-app-test
+  namespace: my-app-test
+  serviceName: my-app-service
+  appLabel: my-app-test
+  image: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:acf5b3c1c8dd394490dbfe21024afc305a8ab2cb_xgboost
+  replicas: 4
+  resources:
+    requests:
+      memory: "300Mi"
+      cpu: "300m"
+    limits:
+      memory: "350Mi"
+      cpu: "500m"
+      
