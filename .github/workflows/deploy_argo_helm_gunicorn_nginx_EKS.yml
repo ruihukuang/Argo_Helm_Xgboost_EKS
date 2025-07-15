@@ -1,8 +1,6 @@
 name: Deploy to Argo CD on EKS
 on:
-  push:
-    branches:
-      - main
+ workflow_dispatch:
 
 permissions:
       id-token: write   # This is required for requesting the JWT
