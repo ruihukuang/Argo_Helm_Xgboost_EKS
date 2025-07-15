@@ -8,7 +8,7 @@ nginx:
 app:
   name: my-app-test
   namespace: my-app-test
-  serviceName: your-app-service
+  serviceName: my-app-service
   appLabel: my-app-test
   image: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:acf5b3c1c8dd394490dbfe21024afc305a8ab2cb_xgboost
   replicas: 4
