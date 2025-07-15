@@ -1,21 +1,22 @@
 nginx:
   name: nginx-deployment
-  namespace: default-namespace
+  namespace: my-app-test
   serviceName: nginx-service
   configName: nginx-config
   appLabel: nginx
 
 app:
-  name: your-app
-  namespace: default-namespace
+  name: my-app-test
+  namespace: my-app-test
   serviceName: your-app-service
-  appLabel: your-app
-  image: your-account-id.dkr.ecr.your-region.amazonaws.com/your-repository-name:latest
-  replicas: 2
+  appLabel: my-app-test
+  image: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:acf5b3c1c8dd394490dbfe21024afc305a8ab2cb_xgboost
+  replicas: 4
   resources:
     requests:
-      memory: "256Mi"
-      cpu: "250m"
+      memory: "300Mi"
+      cpu: "300m"
     limits:
-      memory: "512Mi"
+      memory: "350Mi"
       cpu: "500m"
+      
