@@ -13,8 +13,8 @@ spec:
       valueFiles:
         - values.yaml  # Path to your custom values.yaml file in the Git repository
   destination:
-    server: 'https://kubernetes.default.svc'
-    namespace: my-app-namespace  # Namespace where your app will be deployed
+    server: 'https://02271C950E70F1C908A039D8FC0C4578.gr7.ap-southeast-2.eks.amazonaws.com'
+    namespace: my-app-test  # Namespace where your app will be deployed
   syncPolicy:
     automated:
       prune: true
