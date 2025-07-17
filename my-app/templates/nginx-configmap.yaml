@@ -13,7 +13,7 @@ data:
         server gunicorn-service:81;  # Replace with your Gunicorn service name
       }
       server {
-        listen 80;
+        listen 8081; if your NGINX container is configured to listen on port 8081 (as specified by containerPort: 8081 in the Deployment), then the listen directive inside the NGINX configuration file should also be set to 8081
         location / {
           proxy_pass http://gunicorn_upstream; # Must match the upstream block name
           proxy_set_header Host $host;
