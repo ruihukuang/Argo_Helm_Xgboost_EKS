@@ -31,6 +31,8 @@ jobs:
 
     - name: Commit and Push Changes
       run: |
+        git config --global user.email "ruihukuang@gmail.com"
+        git config --global user.name "ruihukuang"
         git add my-app-argo-app.yaml
         git commit -m "Update EKS cluster endpoint in Argo CD Application manifest"
         git push
