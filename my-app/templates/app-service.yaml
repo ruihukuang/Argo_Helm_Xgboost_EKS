@@ -7,7 +7,7 @@ spec:
   selector:
     app: {{ .Values.app.appLabel }}
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 80
-  type: LoadBalancer
+  - port: 80
+    targetPort: 80
+  selector:
+    app: {{ .Values.app.appLabel }}
