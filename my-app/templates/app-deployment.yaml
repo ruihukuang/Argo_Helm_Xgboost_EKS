@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.app.name }}
+  name: gunicorn-deployment
   namespace: {{ .Values.app.namespace }}
 spec:
   replicas: {{ .Values.app.replicas }}
   selector:
     matchLabels:
-      app: {{ .Values.app.appLabel }}
+      app: gunicorn
   template:
     metadata:
       labels:
-        app: {{ .Values.app.appLabel }}
+        app: gunicorn
     spec:
       containers:
       - name: gunicorn-container
