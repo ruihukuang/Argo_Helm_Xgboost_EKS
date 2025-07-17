@@ -18,7 +18,23 @@ jobs:
          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
          aws-region: ${{ secrets.REGION }}
 
+    - name: Retrieve EKS Cluster Endpoint
+      id: get_eks_endpoint
+      run: |
+        eks_endpoint=$(aws eks describe-cluster --name MyEKSCluster --query "cluster.endpoint" --output text)
+        echo "EKS Endpoint: $eks_endpoint"
+        echo "eks_endpoint=$eks_endpoint" >> $GITHUB_ENV
 
+    - name: Update Argo CD Application Manifest
+      run: |
+        sed -i "s|server: '.*'|server: '${{ env.eks_endpoint }}'|" my-app-argo-app.yaml
+
+    - name: Commit and Push Changes
+      run: |
+        git add my-app-argo-app.yaml
+        git commit -m "Update EKS cluster endpoint in Argo CD Application manifest"
+        git push
+        
     - name: Get Bastion Host Public IP
       id: bastion_ip
       run: |
