@@ -7,5 +7,5 @@ spec:
   selector:
     app: gunicorn
   ports:
-  - port: 80
+  - port: 81
     targetPort: 8080
