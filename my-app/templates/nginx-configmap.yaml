@@ -10,7 +10,7 @@ data:
     }
     http {
       upstream gunicorn {
-        server {{ .Values.app.serviceName }}:80;  # Replace with your Gunicorn service name
+        server gunicorn-service:80;  # Replace with your Gunicorn service name
       }
       server {
         listen 80;
