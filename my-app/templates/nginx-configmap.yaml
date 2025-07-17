@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-config
-  namespace: your-namespace
+  namespace: {{ .Values.nginx.namespace }}
 data:
   nginx.conf: |
     events {
