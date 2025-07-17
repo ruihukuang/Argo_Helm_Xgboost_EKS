@@ -12,4 +12,3 @@ app:
     limits:
       memory: "350Mi"
       cpu: "500m"
-      
