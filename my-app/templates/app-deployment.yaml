@@ -14,7 +14,7 @@ spec:
         app: {{ .Values.app.appLabel }}
     spec:
       containers:
-      - name: your-container
+      - name: gunicorn-container
         image: {{ .Values.app.image }}
         resources:
           requests:
