@@ -1,18 +1,25 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Values.nginx.configName }}
-  namespace: {{ .Values.nginx.namespace }}
+  name: nginx-config
+  namespace: your-namespace
 data:
   nginx.conf: |
-    upstream backend {
-        server {{ .Values.app.serviceName }}:80;
+    events {
+      worker_connections 1024;
     }
-    server {
-        listen 443 ssl;
-        server_name yourdomain.com;
-        ssl_certificate /path/to/fullchain.pem;
-        ssl_certificate_key /path/to/privkey.pem;
+    http {
+      upstream gunicorn {
+        server {{ .Values.app.serviceName }}:80;  # Replace with your Gunicorn service name
+      }
+      server {
+        listen 80;
         location / {
-            proxy_pass http://backend;
+          proxy_pass http://gunicorn;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
         }
+      }
+    }
