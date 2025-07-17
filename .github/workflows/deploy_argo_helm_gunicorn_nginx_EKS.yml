@@ -71,3 +71,4 @@ jobs:
           wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
           kubectl apply -f my-app-argo-app.yaml
         EOF
+# kubectl get svc nginx-service -n my-app-test -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' URL of load balancer for nginx
