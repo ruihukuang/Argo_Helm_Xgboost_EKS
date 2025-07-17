@@ -9,7 +9,7 @@ data:
       worker_connections 1024;
     }
     http {
-      upstream gunicorn {
+      upstream gunicorn_upstream {
         server gunicorn-service:80;  # Replace with your Gunicorn service name
       }
       server {
