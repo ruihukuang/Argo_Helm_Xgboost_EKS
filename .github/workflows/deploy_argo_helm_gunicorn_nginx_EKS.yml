@@ -35,7 +35,7 @@ jobs:
         git config --global user.name "ruihukuang"
         git add my-app-argo-app.yaml
         git commit -m "Update EKS cluster endpoint in Argo CD Application manifest"
-        git push
+        git push https://x-access-token:${{ secrets.PAT }}@github.com/ruihukuang/Argo_Helm_Xgboost_EKS.git HEAD:main
         
     - name: Get Bastion Host Public IP
       id: bastion_ip
