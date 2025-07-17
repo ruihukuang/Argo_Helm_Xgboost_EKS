@@ -1,1 +1,48 @@
+name: Deploy stacks and load balancers created later
+on:
+ workflow_dispatch:
 
+permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: read 
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+  
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+         role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
+         aws-region: ${{ secrets.REGION }}
+
+    - name: List and Delete Load Balancers
+      run: |
+        # List all load balancers
+        load_balancers=$(aws elb describe-load-balancers --query 'LoadBalancerDescriptions[*].LoadBalancerName' --output text)
+        
+        # Delete each load balancer
+        for lb in $load_balancers; do
+          echo "Deleting load balancer: $lb"
+          aws elb delete-load-balancer --load-balancer-name $lb
+        done
+
+    - name: Delete EKS Stack
+      run: |
+        echo "Deleting EKS stack..."
+        aws cloudformation delete-stack --stack-name MyEKSCluster
+
+        echo "Waiting for EKS stack deletion to complete..."
+        aws cloudformation wait stack-delete-complete --stack-name MyEKSCluster
+
+    - name: Delete Bastion Stack
+      run: |
+        echo "Deleting Bastion stack..."
+        aws cloudformation delete-stack --stack-name BastionHostStack
+
+        echo "Waiting for Bastion stack deletion to complete..."
+        aws cloudformation wait stack-delete-complete --stack-name BastionHostStack
+       
+        
