@@ -75,11 +75,6 @@ jobs:
           echo $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           # Access the Argo CD UI and get the password  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
           # Apply Argo CD Application
-          echo "Waiting for an Argo CD Application to be ready..."
-          while ! kubectl apply -f my-app-argo-app.yaml; do
-          echo "an Argo CD Application is not ready yet. Sleeping for 10 seconds..."
-          sleep 10
-          done
-          rm my-app-argo-app.yaml
+          kubectl apply -f my-app-argo-app.yaml
         EOF
 # kubectl get svc nginx-service -n my-app-test -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' URL of load balancer for nginx
