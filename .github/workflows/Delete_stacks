@@ -18,6 +18,16 @@ jobs:
          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
          aws-region: ${{ secrets.REGION }}
 
+    - name: Find VPC ID
+      run: |
+        VPC_id=$(aws ec2 describe-vpcs --filters "Name=cidr,Values=10.0.0.0/16" --query "Vpcs[*].VpcId" --output text)
+        echo "VPC_id=$VPC_id" >> $GITHUB_ENV
+
+    - name: List and Delete Security Groups related to VPC with cidr 10.0.0.0/16
+      run: |
+        # List security groups associated with the VPC Update this if decription does not have default
+        security_groups=$(aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${{ env.VPC_id }}" --query "SecurityGroups[*].GroupId" --output text)
+
     - name: List and Delete Load Balancers
       run: |
         # List all load balancers
