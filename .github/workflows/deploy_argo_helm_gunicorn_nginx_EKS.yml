@@ -17,25 +17,6 @@ jobs:
       with:
          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
          aws-region: ${{ secrets.REGION }}
-
-    - name: Retrieve EKS Cluster Endpoint
-      id: get_eks_endpoint
-      run: |
-        eks_endpoint=$(aws eks describe-cluster --name MyEKSCluster --query "cluster.endpoint" --output text)
-        echo "EKS Endpoint: $eks_endpoint"
-        echo "eks_endpoint=$eks_endpoint" >> $GITHUB_ENV
-
-    - name: Update Argo CD Application Manifest
-      run: |
-        sed -i "s|server: '.*'|server: '${{ env.eks_endpoint }}'|" my-app-argo-app.yaml
-
-    - name: Commit and Push Changes
-      run: |
-        git config --global user.email "ruihukuang@gmail.com"
-        git config --global user.name "ruihukuang"
-        git add my-app-argo-app.yaml
-        git commit -m "Update EKS cluster endpoint in Argo CD Application manifest"
-        git push https://x-access-token:${{ secrets.PAT }}@github.com/ruihukuang/Argo_Helm_Xgboost_EKS.git HEAD:main
         
     - name: Get Bastion Host Public IP
       id: bastion_ip
@@ -58,7 +39,15 @@ jobs:
           kubectl get nodes
           kubectl create namespace argocd
           kubectl create namespace my-app-test
-                    #Install Argo CLI
+          #Retrieve EKS Endpoint
+          eks_endpoint=$(aws eks describe-cluster --name MyEKSCluster --query "cluster.endpoint" --output text)
+          echo "EKS Endpoint: $eks_endpoint"
+          # update a yaml file after download it
+          wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
+          sudo chmod 755 my-app-argo-app.yaml
+          sed -i "s|server: '.*'|server: '$eks_endpoint'|" my-app-argo-app.yaml
+          echo "YAML file updated successfully."
+          #Install Argo CLI
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
           # install helm 
@@ -86,7 +75,11 @@ jobs:
           echo $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           # Access the Argo CD UI and get the password  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
           # Apply Argo CD Application
-          wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
-          kubectl apply -f my-app-argo-app.yaml
+          echo "Waiting for an Argo CD Application to be ready..."
+          while ! kubectl apply -f my-app-argo-app.yaml; do
+          echo "an Argo CD Application is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
+          rm my-app-argo-app.yaml
         EOF
 # kubectl get svc nginx-service -n my-app-test -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' URL of load balancer for nginx
