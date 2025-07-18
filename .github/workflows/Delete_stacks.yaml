@@ -32,9 +32,27 @@ jobs:
       run: |
         sg_id=$(jq -r '.[] | select(.Name=="default") | .Id' security_groups.json)
         if [ -n "$sg_id" ]; then
-          echo "Removing rules from security group: $sg_id"
-          aws ec2 revoke-security-group-ingress --group-id $sg_id --protocol all --port all --cidr 0.0.0.0/0
-          aws ec2 revoke-security-group-egress --group-id $sg_id --protocol all --port all --cidr 0.0.0.0/0
+          echo "Checking rules for security group: $sg_id"
+  
+          # Check and remove inbound rules
+          inbound_rules=$(aws ec2 describe-security-groups --group-ids $sg_id --query "SecurityGroups[0].IpPermissions" --output json)
+          if [ "$inbound_rules" != "[]" ]; then
+            echo "Removing inbound rules from security group: $sg_id"
+            aws ec2 revoke-security-group-ingress --group-id $sg_id --protocol all --port all --cidr 0.0.0.0/0 || true
+          else
+            echo "No inbound rules to remove."
+          fi
+
+          # Check and remove outbound rules
+          outbound_rules=$(aws ec2 describe-security-groups --group-ids $sg_id --query "SecurityGroups[0].IpPermissionsEgress" --output json)
+          if [ "$outbound_rules" != "[]" ]; then
+            echo "Removing outbound rules from security group: $sg_id"
+            aws ec2 revoke-security-group-egress --group-id $sg_id --protocol all --port all --cidr 0.0.0.0/0 || true
+          else
+            echo "No outbound rules to remove."
+          fi
+
+          # Delete the security group
           echo "Deleting security group: $sg_id"
           aws ec2 delete-security-group --group-id $sg_id
         else
