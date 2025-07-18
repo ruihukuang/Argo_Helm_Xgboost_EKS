@@ -41,7 +41,7 @@ jobs:
     
     - name: Remove Rules and Delete Security Groups
       run: |
-        sg_ids=$(jq -r '.[] | select(.Name!="default" and (.Description=="my-app-test/nginx-service" or .Description=="argocd/argocd-server")) | .Id' security_groups.json)
+        sg_ids=$(jq -r '.[] | select(.Name!="default" and (.Description | contains("my-app-test/nginx-service") or contains("argocd/argocd-server"))) | .Id' security_groups.json)
         for sg_id in $sg_ids; do
           if [ -n "$sg_id" ]; then
             echo "Checking rules for security group: $sg_id"
