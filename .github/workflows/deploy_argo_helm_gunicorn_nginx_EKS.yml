@@ -40,7 +40,11 @@ jobs:
           kubectl create namespace argocd
           kubectl create namespace my-app-test
           #Retrieve EKS Endpoint
-          eks_endpoint=$(aws eks describe-cluster --name MyEKSCluster --query "cluster.endpoint" --output text)
+          echo "Waiting for an EKS Endpoint to be ready..."
+          while ! eks_endpoint=$(aws eks describe-cluster --name MyEKSCluster --query "cluster.endpoint" --output text); do
+          echo "An EKS Endpoint is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
           echo "EKS Endpoint: $eks_endpoint"
           # update a yaml file after download it
           wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
