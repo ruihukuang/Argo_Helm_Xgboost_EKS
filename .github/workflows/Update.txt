@@ -1,0 +1,20 @@
+[ec2-user@ip-10-0-3-240 ~]$ argocd login a728d13040e3c4d72b24584269a1be21-1150365379.ap-southeast-2.elb.amazonaws.com --username admin --password 0iuL0jexT8xoB63N
+WARNING: server certificate had error: tls: failed to verify certificate: x509: certificate is valid for localhost, argocd-server, argocd-server.argocd, argocd-server.argocd.svc, argocd-server.argocd.svc.cluster.local, not a728d13040e3c4d72b24584269a1be21-1150365379.ap-southeast-2.elb.amazonaws.com. Proceed insecurely (y/n)? y
+'admin:login' logged in successfully
+Context 'a728d13040e3c4d72b24584269a1be21-1150365379.ap-southeast-2.elb.amazonaws.com' updated
+
+[ec2-user@ip-10-0-3-240 ~]$ kubectl config get-contexts
+CURRENT   NAME                                                           CLUSTER                                                        AUTHINFO                                                       NAMESPACE
+*         arn:aws:eks:ap-southeast-2:628125037712:cluster/MyEKSCluster   arn:aws:eks:ap-southeast-2:628125037712:cluster/MyEKSCluster   arn:aws:eks:ap-southeast-2:628125037712:cluster/MyEKSCluster   
+
+argocd cluster add arn:aws:eks:ap-southeast-2:628125037712:cluster/MyEKSCluster
+[ec2-user@ip-10-0-3-240 ~]$ argocd cluster add arn:aws:eks:ap-southeast-2:628125037712:cluster/MyEKSCluster
+WARNING: This will create a service account `argocd-manager` on the cluster referenced by context `arn:aws:eks:ap-southeast-2:628125037712:cluster/MyEKSCluster` with full cluster level privileges. Do you want to continue [y/N]? y
+{"level":"info","msg":"ServiceAccount \"argocd-manager\" created in namespace \"kube-system\"","time":"2025-07-18T05:53:44Z"}
+{"level":"info","msg":"ClusterRole \"argocd-manager-role\" created","time":"2025-07-18T05:53:45Z"}
+{"level":"info","msg":"ClusterRoleBinding \"argocd-manager-role-binding\" created","time":"2025-07-18T05:53:45Z"}
+{"level":"info","msg":"Created bearer token secret for ServiceAccount \"argocd-manager\"","time":"2025-07-18T05:53:45Z"}
+Cluster 'https://C8295BE0DF164F19D0B97DBF8911518F.gr7.ap-southeast-2.eks.amazonaws.com' added
+
+
+Add Kubernate metric server 
