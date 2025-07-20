@@ -1,4 +1,4 @@
-name: Deploy stacks and load balancers created later
+name: Delete stacks and load balancers/security groups created later
 on:
  workflow_dispatch:
 
