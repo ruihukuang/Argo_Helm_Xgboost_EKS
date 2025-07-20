@@ -76,9 +76,33 @@ jobs:
           sleep 10
           done
           # Get the Load Balancer of Argo CD API Server URL
-          echo $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          # Access the Argo CD UI and get the password  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+          Argo_URL= $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          # Access the Argo CD UI and get the password  
+          Argo_OriginPW=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+          # Update password in Argo CD 
+          argocd login $Argo_URL --username admin --password $Argo_OriginPW
+          argocd account update-password --current-password $Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }}
+          # Log into Argo with a new password 
+          argocd login Argo_URL --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }}
+          # retrieve the name of the current Kubernetes context
+          ContextName=$(kubectl config current-context)
+          # Add a cluster into argo 
+          argocd cluster add $ContextName
           # Apply Argo CD Application
-          kubectl apply -f my-app-argo-app.yaml
+          echo "Waiting for an Argo CD application to be ready..."
+          while ! kubectl apply -f my-app-argo-app.yaml; do
+          echo "an Argo CD application is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
+          #Install metrics-server
+          kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+          echo "Waiting for metrics-server to be ready..."
+          while ! kubectl get deployment metrics-server -n kube-system -o jsonpath='{.status.readyReplicas}' | grep -q '1'; do
+          echo "Metrics Server is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
+          echo "Metrics Server is ready!"
+          kubectl top nodes
+          kubectl top pods --all-namespaces 
         EOF
 # kubectl get svc nginx-service -n my-app-test -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' URL of load balancer for nginx
