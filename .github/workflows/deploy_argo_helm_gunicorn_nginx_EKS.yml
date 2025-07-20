@@ -47,7 +47,11 @@ jobs:
           done
           echo "EKS Endpoint: $eks_endpoint"
           # update a yaml file after download it
-          wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
+          echo "Waiting for uploading a yaml file for an argo application to be ready..."
+          while ! wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml; do
+          echo "A yaml file for an argo application is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
           sudo chmod 755 my-app-argo-app.yaml
           sed -i "s|server: '.*'|server: '$eks_endpoint'|" my-app-argo-app.yaml
           echo "YAML file updated successfully."
