@@ -83,7 +83,7 @@ jobs:
           Argo_URL= $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           # Access the Argo CD UI and get the password  
           Argo_OriginPW=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
-          # Update password in Argo CD 
+          # Update password in Argo CD (dOES NOT WORK)
           argocd login $Argo_URL --username admin --password $Argo_OriginPW
           argocd account update-password --current-password $Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }}
           # Log into Argo with a new password 
@@ -91,7 +91,11 @@ jobs:
           # retrieve the name of the current Kubernetes context
           ContextName=$(kubectl config current-context)
           # Add a cluster into argo 
-          argocd cluster add $ContextName
+          echo "Wait a few minutes to add a cluster into argo"
+          while ! argocd cluster add $ContextName --yes; do
+          echo "Adding a cluster into argo is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done        
           # Apply Argo CD Application
           echo "Waiting for an Argo CD application to be ready..."
           while ! kubectl apply -f my-app-argo-app.yaml; do
