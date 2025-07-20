@@ -20,7 +20,7 @@ jobs:
 
     - name: find the docker image with the tag ending with xgboost 
       run: |
-        output=$(aws ecr-public describe-images --repository-name ${{ env.ECR_REPOSITORY }} --region us-east-1 )
+        output=$(aws ecr-public describe-images --repository-name my_repo_xgboost_test --region us-east-1 )
         matching_images=$(echo "$output" | jq -r '.imageDetails[].imageTags[] | select(endswith("_xgboost"))')
         echo "IMAGE_TAG=$matching_images" >> $GITHUB_ENV
 
