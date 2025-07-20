@@ -53,7 +53,7 @@ jobs:
           sleep 10
           done
           sudo chmod 755 my-app-argo-app.yaml
-          sed -i "s|server: '.*'|server: '$eks_endpoint'|" my-app-argo-app.yaml
+          sudo sed -i "s|server: '.*'|server: '$eks_endpoint'|" my-app-argo-app.yaml
           echo "YAML file updated successfully."
           #Install Argo CLI
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
