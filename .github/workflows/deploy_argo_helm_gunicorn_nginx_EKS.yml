@@ -18,23 +18,6 @@ jobs:
       with:
          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
          aws-region: ${{ secrets.REGION }}
-
-    - name: find the docker image with the tag ending with xgboost 
-      run: |
-        output=$(aws ecr-public describe-images --repository-name my_repo_xgboost_test --region us-east-1 )
-        matching_images=$(echo "$output" | jq -r '.imageDetails[].imageTags[] | select(endswith("_xgboost"))')
-        echo "IMAGE_TAG=$matching_images" >> $GITHUB_ENV
-
-    - name: Update values.yaml
-      run: |
-        # Update the values.yaml file with the new image tag
-        sed -i "s|image:.*|image: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:${{ env.IMAGE_TAG }}|" my-app/values.yaml
-
-    - name: Commit changes
-      uses: stefanzweifel/git-auto-commit-action@v5
-      with:
-        commit_message: "Update Docker image to ${{ env.IMAGE_TAG }}"
-        file_pattern: my-app/values.yaml
              
     - name: Get Bastion Host Public IP
       id: bastion_ip
@@ -72,6 +55,11 @@ jobs:
           done
           sudo chmod 755 my-app-argo-app.yaml
           sudo sed -i "s|server: '.*'|server: '$eks_endpoint'|" my-app-argo-app.yaml
+
+          output=$(aws ecr-public describe-images --repository-name my_repo_xgboost_test --region us-east-1 )
+          matching_images=$(echo "$output" | jq -r '.imageDetails[].imageTags[] | select(endswith("_xgboost"))')
+          sudo sed -i "s|value: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:'.*'|value: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:'$matching_images'|" my-app-argo-app.yaml
+       
           echo "YAML file updated successfully."
           #Install Argo CLI
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
