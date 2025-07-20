@@ -83,11 +83,24 @@ jobs:
           Argo_URL= $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           # Access the Argo CD UI and get the password  
           Argo_OriginPW=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
-          # Update password in Argo CD (dOES NOT WORK)
-          argocd login $Argo_URL --username admin --password $Argo_OriginPW
-          argocd account update-password --current-password $Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }}
+          # Log into Argo with an originial password
+          echo "Wait a few minutes to log into argo with an original password"
+          while ! argocd login $Argo_URL --username admin --password $Argo_OriginPW --insecure; do
+          echo "An original password login for argo is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
+          # Update password in Argo CD 
+          echo "Wait a few minutes to update a password for argo"
+          while ! argocd account update-password --current-password $Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} ; do
+          echo "A new password update for argo is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
           # Log into Argo with a new password 
-          argocd login Argo_URL --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }}
+          echo "Wait a few minutes to log into argo with a new password"
+          while ! argocd login Argo_URL --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} ; do
+          echo "A new password login for argo is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
           # retrieve the name of the current Kubernetes context
           ContextName=$(kubectl config current-context)
           # Add a cluster into argo 
