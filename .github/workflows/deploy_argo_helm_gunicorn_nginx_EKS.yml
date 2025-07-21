@@ -131,7 +131,7 @@ jobs:
           done        
           # Apply Argo CD Application
           echo "Waiting for an Argo CD application to be ready..."
-          while ! kubectl apply -f my-app-argo-app.yaml; do
+          while ! kubectl apply -f /home/ec2-user/my-app-argo-app.yaml; do
           echo "an Argo CD application is not ready yet. Sleeping for 10 seconds..."
           sleep 10
           done
