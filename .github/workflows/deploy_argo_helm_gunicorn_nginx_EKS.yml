@@ -137,7 +137,17 @@ jobs:
         kubectl patch svc argocd-server -n argocd --type='merge' -p '{"spec": {"type": "LoadBalancer"}}' || { echo "Failed to patch svc"; exit 1; }
       
         # Get the Load Balancer of Argo CD API Server URL
-        Argo_URL=\$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}') || { echo "Failed to get Argo URL"; exit 1; }
+        echo "Waiting for Load Balancer hostname..."
+        for i in {1..30}; do
+          Argo_URL=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          if [ -n "$Argo_URL" ]; then
+            echo "Load Balancer hostname is ready: $Argo_URL"
+            break
+          else
+            echo "Waiting for Load Balancer hostname... (Attempt $i)"
+            sleep 10
+          fi
+        done || { echo "Failed to get Argo URL"; exit 1; }
       
         # Access the Argo CD UI and get the password
         Argo_OriginPW=\$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) || { echo "Failed to get Argo password"; exit 1; }
