@@ -203,20 +203,27 @@ jobs:
           fi
         done
 
+        kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' > hostname.txt
+        
         a=\$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
         echo \"The hostname is: \$a\"
-      
+
+        b=$(ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP "
+        kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+        ")
+        echo "The hostname is: $b"
+        
         # Access the Argo CD UI and get the password
         Argo_OriginPW=\$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) || { echo "Failed to get Argo password"; exit 1; }
       
         # Log into Argo with an original password
-        argocd login \$a --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
+        argocd login $b --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
       
         # Update password in Argo CD
         argocd account update-password --current-password \$Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
       
         # Log into Argo with a new password
-        argocd login \$Argo_URL --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
+        argocd login $b --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
       
         # Retrieve the name of the current Kubernetes context
         ContextName=\$(kubectl config current-context) || { echo "Failed to get Kubernetes context"; exit 1; }
