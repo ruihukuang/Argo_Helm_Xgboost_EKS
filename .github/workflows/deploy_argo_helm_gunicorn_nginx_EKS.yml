@@ -82,9 +82,11 @@ jobs:
         scp -o StrictHostKeyChecking=no -i key.pem update_script.sh ec2-user@$BASTION_IP:/home/ec2-user/
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
         set -ex  # Enable command tracing and exit on error
-        rm -rf cluster_ip.txt
-        rm -rf patch_output.txt
-        rm -rf hostname.txt
+        rm -rf /home/ec2-user/cluster_ip.txt
+        rm -rf /home/ec2-user/patch_output.txt
+        rm -rf /home/ec2-user/hostname.txt
+        rm -rf /home/ec2-user/secret.txt
+        rm -rf /home/ec2-user/get_helm.sh
         aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
         kubectl get nodes || { echo "Failed to get nodes"; exit 1; }
       
@@ -111,10 +113,12 @@ jobs:
         sudo cat /home/ec2-user/my-app-argo-app.yaml || { echo "Failed to read my-app-argo-app.yaml"; exit 1; }
       
         # Install Argo CLI
+        sudo rm /usr/local/bin/argocd
         sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
         sudo chmod +x /usr/local/bin/argocd || { echo "Failed to install Argo CLI"; exit 1; }
       
         # Install Helm
+        sudo rm /usr/local/bin/helm
         curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
         sudo chmod 700 get_helm.sh
         ./get_helm.sh || { echo "Failed to install Helm"; exit 1; }
