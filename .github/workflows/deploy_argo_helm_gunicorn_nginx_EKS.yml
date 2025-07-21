@@ -137,20 +137,30 @@ jobs:
         done || { echo "argocd-server deployment not ready after waiting"; exit 1; }
 
         # Wait for argocd-server service to be ready
-        echo "Waiting for the argocd-server service to be ready..."
+        echo "Waiting for argocd-server service to have a ClusterIP..."
+        TIMEOUT=600  # 10 minutes
+        INTERVAL=60  # 60 seconds
+        START_TIME=$(date +%s)
 
-        # Loop to check the service readiness
-        while true; do
-        # Check if the service has an external IP assigned
+        # Run the kubectl command once to initialize CLUSTER_IP
+        CLUSTER_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}')
+
+        while [ -z "$CLUSTER_IP" ]; do
+          echo "argocd-server service is not ready with CLUSTER IP yet. Checking again in $INTERVAL seconds..."
+          sleep $INTERVAL
+
+          # Check again if CLUSTER_IP exists
           CLUSTER_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}')
-          if [ -n "$CLUSTER_IP" ]; then
-            echo "argocd-server service is ready with CLUSTER IP: $CLUSTER_IP"
-            break
-          else
-            echo "argocd-server service is not ready with CLUSTER IP yet. Checking again in 30 seconds..."
-            sleep 30
+
+          CURRENT_TIME=$(date +%s)
+          ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
+          if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
+            echo "argocd-server service not ready with CLUSTER IP after waiting for 10 minutes"
+            exit 1
           fi
-        done 
+        done
+
+        echo "argocd-server service is ready with CLUSTER IP: $CLUSTER_IP"
       
         # Expose Argo CD API Server via an AWS Load Balancer
         # Attempt to patch the service
