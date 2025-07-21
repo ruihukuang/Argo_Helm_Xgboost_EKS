@@ -55,7 +55,7 @@ jobs:
       run: |
         aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${{ env.VPC_id }}" --query "SecurityGroups[*].{Name:GroupName,Id:GroupId,Description:Description}" --output json > security_groups.json
     
-    - name: Remove Rules and Delete Security Groups
+    - name: Remove Rules and Delete Security Groups(need to delete allec2 Network interfaces, then delete related security group related to this before deleting security group of argo server. Then the vpc could be deleted when deleting stack )
       run: |
         sg_ids=$(jq -r '.[] | select(.Name!="default" and (.Description | contains("my-app-test/nginx-service") or contains("argocd/argocd-server"))) | .Id' security_groups.json)
         for sg_id in $sg_ids; do
