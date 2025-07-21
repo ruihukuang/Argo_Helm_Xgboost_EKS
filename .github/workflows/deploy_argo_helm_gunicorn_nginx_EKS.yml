@@ -137,35 +137,42 @@ jobs:
         done || { echo "argocd-server deployment not ready after waiting"; exit 1; }
 
         # Wait for argocd-server service to be ready
-        echo "Waiting for argocd-server service to have a ClusterIP..."
-        TIMEOUT=600  # 10 minutes
-        INTERVAL=60  # 60 seconds
-        START_TIME=$(date +%s)
+        # Run the command in the background and redirect output to a file
+        kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}' > cluster_ip.txt &
 
-        # Run the kubectl command once to initialize CLUSTER_IP
-        CLUSTER_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}')
+        # Capture the process ID (PID) of the background job
+        KUBECTL_PID=$!
 
-        while [ -z "$CLUSTER_IP" ]; do
-          echo "argocd-server service is not ready with CLUSTER IP yet. Checking again in $INTERVAL seconds..."
-          sleep $INTERVAL
+        # Optionally, you can wait for the background process to complete
+        wait $KUBECTL_PID
 
-          # Check again if CLUSTER_IP exists
-          CLUSTER_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}')
-
-          CURRENT_TIME=$(date +%s)
-          ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
-          if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
-            echo "argocd-server service not ready with CLUSTER IP after waiting for 10 minutes"
-            exit 1
-          fi
-        done
-
-        echo "argocd-server service is ready with CLUSTER IP: $CLUSTER_IP"
+        # Check the exit status of the background process
+        if [ $? -eq 0 ]; then
+          echo "Command executed successfully."
+          # Read the output from the file
+          CLUSTER_IP=$(cat cluster_ip.txt)
+          echo "Cluster IP: $CLUSTER_IP"
+        else
+          echo "Command failed."
+        fi
       
         # Expose Argo CD API Server via an AWS Load Balancer
         # Attempt to patch the service
         echo "Attempting to patch svc argocd-server to LoadBalancer..."
-        kubectl patch svc argocd-server -n argocd --type='merge' -p '{"spec": {"type": "LoadBalancer"}}'
+        kubectl patch svc argocd-server -n argocd --type='merge' -p '{"spec": {"type": "LoadBalancer"}}' &
+
+        # Capture the process ID (PID) of the background job
+        PATCH_PID=$!
+
+        # Optionally, wait for the background process to complete
+        wait $PATCH_PID
+
+        # Check the exit status of the background process
+        if [ $? -eq 0 ]; then
+          echo "Patch command executed successfully."
+        else
+          echo "Patch command failed."
+        fi
       
         # Get the Load Balancer of Argo CD API Server URL
         echo "Waiting for Load Balancer hostname..."
