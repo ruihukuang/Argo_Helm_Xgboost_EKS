@@ -53,7 +53,7 @@ jobs:
       env:
          BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
       run: | 
-        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP " wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml"
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP "wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml"
         
     - name: SSH to Bastion Host and Update Kubeconfig
       env:
