@@ -89,12 +89,16 @@ jobs:
           kubectl create namespace argocd || { echo "Failed to create namespace argocd"; exit 1; }
         else
           echo "Namespace argocd already exists"
+          kubectl delete namespace argocd || { echo "Failed to delete namespace argocd"; exit 1; }
+          kubectl create namespace argocd || { echo "Failed to create namespace argocd after deleting this namespace"; exit 1; }
         fi
       
         if ! kubectl get namespace my-app-test; then
           kubectl create namespace my-app-test || { echo "Failed to create namespace my-app-test"; exit 1; }
         else
           echo "Namespace my-app-test already exists"
+          kubectl delete namespace my-app-test || { echo "Failed to delete namespace my-app-test"; exit 1; }
+          kubectl create namespace my-app-test || { echo "Failed to create namespace my-app-test after deleting this namespace"; exit 1; }
         fi
       
         sudo chmod +x /home/ec2-user/update_script.sh
@@ -120,35 +124,49 @@ jobs:
         helm uninstall argocd --namespace argocd || true  # Ignore errors if not installed
         helm install argocd argo/argo-cd --namespace argocd --create-namespace || { echo "Failed to install Argo CD"; exit 1; }
       
-        # Wait for argocd-server to be deployed
-        echo "Waiting for argocd-server to be ready..."
+        # Wait for argocd-server deployment to be ready
+        echo "Waiting for argocd-server deployment to be ready..."
         for i in {1..60}; do
           if kubectl get deployment argocd-server -n argocd -o jsonpath='{.status.readyReplicas}' | grep -q '1'; then
-            echo "argocd-server is ready"
+            echo "argocd-server deployment is ready"
             break
           else
-            echo "Waiting for argocd-server to be ready... (Attempt \$i)"
+            echo "Waiting for argocd-server deployment to be ready... (Attempt \$i)"
             sleep 10
           fi
-        done || { echo "argocd-server not ready after waiting"; exit 1; }
+        done || { echo "argocd-server deployment not ready after waiting"; exit 1; }
+
+        # Wait for argocd-server service to be ready
+        echo "Waiting for the argocd-server service to be ready..."
+
+        # Set a timeout duration (in seconds)
+        TIMEOUT=600  # 10 minutes
+        START_TIME=$(date +%s)
+
+        # Loop to check the service readiness
+        while true; do
+        # Check if the service has an external IP assigned
+          CLUSTER_IP=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}')
+          if [ -n "$CLUSTER_IP" ]; then
+            echo "argocd-server service is ready with CLUSTER IP: $CLUSTER_IP"
+            break
+          else
+            echo "argocd-server service is not ready with CLUSTER IP yet. Checking again in 30 seconds..."
+            sleep 30
+          fi
+           # Check if the timeout has been reached
+          CURRENT_TIME=$(date +%s)
+          ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
+          if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
+            echo "argocd-server service not ready with CLUSTER IP after waiting for 10 minutes"
+            exit 1
+          fi
+        done 
       
         # Expose Argo CD API Server via an AWS Load Balancer
         # Attempt to patch the service
         echo "Attempting to patch svc argocd-server to LoadBalancer..."
         kubectl patch svc argocd-server -n argocd --type='merge' -p '{"spec": {"type": "LoadBalancer"}}'
-
-        # Wait for 5 minutes
-        echo "Waiting for 5 minutes to allow patching to take effect..."
-        sleep 180  # 300 seconds = 3 minutes
-
-        # Check if the patching was successful
-        SERVICE_TYPE=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.type}')
-        if [ "$SERVICE_TYPE" = "LoadBalancer" ]; then
-          echo "The service type of argocd-server is LoadBalancer."
-        else
-          echo "The service type of argocd-server is not LoadBalancer."
-          exit 1
-        fi
       
         # Get the Load Balancer of Argo CD API Server URL
         echo "Waiting for Load Balancer hostname..."
