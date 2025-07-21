@@ -222,16 +222,16 @@ jobs:
         kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d > secret.txt
       
         # Log into Argo with an original password
-        sudo argocd login $(cat /home/ec2-user/hostname.txt) --username admin --password $(cat /home/ec2-user/secret.txt) --insecure || { echo "Failed to login to Argo"; exit 1; } 
+        argocd login \$(cat /home/ec2-user/hostname.txt) --username admin --password \$(cat /home/ec2-user/secret.txt) --insecure || { echo "Failed to login to Argo"; exit 1; } 
       
         # Update password in Argo CD
-        sudo argocd account update-password --current-password $(cat /home/ec2-user/secret.txt) --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
+        argocd account update-password --current-password \$(cat /home/ec2-user/secret.txt) --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
       
         # Log into Argo with a new password
-        sudo argocd login $(cat /home/ec2-user/hostname.txt) --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
+        argocd login \$(cat /home/ec2-user/hostname.txt) --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
       
         # Retrieve the name of the current Kubernetes context
-        sudo ContextName=\$(kubectl config current-context) || { echo "Failed to get Kubernetes context"; exit 1; }
+        ContextName=\$(kubectl config current-context) || { echo "Failed to get Kubernetes context"; exit 1; }
       
         # Add a cluster into Argo
         sudo argocd cluster add \$ContextName --yes || { echo "Failed to add cluster to Argo"; exit 1; }
