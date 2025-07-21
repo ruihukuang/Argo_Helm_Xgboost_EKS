@@ -82,6 +82,8 @@ jobs:
         scp -o StrictHostKeyChecking=no -i key.pem update_script.sh ec2-user@$BASTION_IP:/home/ec2-user/
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
         set -ex  # Enable command tracing and exit on error
+        rm -rf cluster_ip.txt
+        rm -rf patch_output.txt
         aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
         kubectl get nodes || { echo "Failed to get nodes"; exit 1; }
       
@@ -160,9 +162,6 @@ jobs:
             if [ -z "$CLUSTER_IP" ]; then
               echo "Cluster IP is empty. Retrying in 30 seconds... (Attempt $i)"
               sleep 30
-      
-              # Run the kubectl command again to check the Cluster IP
-              kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}' > cluster_ip.txt
               CLUSTER_IP=$(cat cluster_ip.txt)
             else
               echo "Cluster IP found: $CLUSTER_IP"
@@ -175,6 +174,7 @@ jobs:
           fi
         else
           echo "Command failed."
+          exit 1
         fi
         
         # Expose Argo CD API Server via an AWS Load Balancer
