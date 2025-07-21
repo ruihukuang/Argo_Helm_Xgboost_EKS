@@ -148,18 +148,40 @@ jobs:
 
         # Check the exit status of the background process
         if [ $? -eq 0 ]; then
-          echo "Command executed successfully."
           # Read the output from the file
           CLUSTER_IP=$(cat cluster_ip.txt)
-          echo "Cluster IP: $CLUSTER_IP"
+          echo "Initial Cluster IP: $CLUSTER_IP"
+  
+          # Retry logic if CLUSTER_IP is empty
+          RETRIES=10
+          INTERVAL=30  # 30 seconds
+  
+          for ((i=1; i<=RETRIES; i++)); do
+            if [ -z "$CLUSTER_IP" ]; then
+              echo "Cluster IP is empty. Retrying in $INTERVAL seconds... (Attempt $i)"
+              sleep $INTERVAL
+      
+              # Run the kubectl command again to check the Cluster IP
+              kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}' > cluster_ip.txt
+              CLUSTER_IP=$(cat cluster_ip.txt)
+            else
+              echo "Cluster IP found: $CLUSTER_IP"
+              break
+            fi
+          done
+  
+          if [ -z "$CLUSTER_IP" ]; then
+            echo "Failed to retrieve Cluster IP after $RETRIES attempts."
+          fi
         else
           echo "Command failed."
         fi
-      
+        
         # Expose Argo CD API Server via an AWS Load Balancer
         # Attempt to patch the service
         echo "Attempting to patch svc argocd-server to LoadBalancer..."
-        kubectl patch svc argocd-server -n argocd --type='merge' -p '{"spec": {"type": "LoadBalancer"}}' &
+        # Run the kubectl patch command in the background and redirect output to a file
+        kubectl patch svc argocd-server -n argocd --type='merge' -p '{"spec": {"type": "LoadBalancer"}}' > patch_output.txt 2>&1 &
 
         # Capture the process ID (PID) of the background job
         PATCH_PID=$!
@@ -170,8 +192,12 @@ jobs:
         # Check the exit status of the background process
         if [ $? -eq 0 ]; then
           echo "Patch command executed successfully."
+          # Optionally, display the output from the file
+          cat patch_output.txt
         else
           echo "Patch command failed."
+          # Display the error output from the file
+          cat patch_output.txt
         fi
       
         # Get the Load Balancer of Argo CD API Server URL
