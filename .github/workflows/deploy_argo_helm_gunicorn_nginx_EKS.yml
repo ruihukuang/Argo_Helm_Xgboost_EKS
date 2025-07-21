@@ -154,10 +154,20 @@ jobs:
           Init_CLUSTER_IP=$(cat cluster_ip.txt)
           echo "Initial Cluster IP: $Init_CLUSTER_IP"
         else
-          echo "Command failed."
+          echo "Command to check if a cluster ip exists failed."
           exit 1
         fi
 
+          # Check if the file exists before attempting to read it
+        if [ -f cluster_ip.txt ]; then
+          echo 'cluster_ip.txt exists. Reading contents...'
+          cat cluster_ip.txt
+        else
+          echo 'cluster_ip.txt does not exist. Please ensure it is created before reading.'
+          exit 1
+        fi
+
+        
         echo "Waiting for Cluster IP of argo server..."
         for i in {1..60}; do
           CLUSTER_IP=$(cat cluster_ip.txt)
