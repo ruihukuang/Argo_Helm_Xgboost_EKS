@@ -82,11 +82,11 @@ jobs:
         scp -o StrictHostKeyChecking=no -i key.pem update_script.sh ec2-user@$BASTION_IP:/home/ec2-user/
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
         set -ex  # Enable command tracing and exit on error
-        rm -rf /home/ec2-user/cluster_ip.txt
-        rm -rf /home/ec2-user/patch_output.txt
-        rm -rf /home/ec2-user/hostname.txt
-        rm -rf /home/ec2-user/secret.txt
-        rm -rf /home/ec2-user/get_helm.sh
+        sudo rm -rf /home/ec2-user/cluster_ip.txt
+        sudo rm -rf /home/ec2-user/patch_output.txt
+        sudo rm -rf /home/ec2-user/hostname.txt
+        sudo rm -rf /home/ec2-user/secret.txt
+        sudo rm -rf /home/ec2-user/get_helm.sh
         aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
         kubectl get nodes || { echo "Failed to get nodes"; exit 1; }
       
@@ -222,19 +222,19 @@ jobs:
         kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d > secret.txt
       
         # Log into Argo with an original password
-        argocd login $(cat hostname.txt) --username admin --password $(cat secret.txt) --insecure || { echo "Failed to login to Argo"; exit 1; } 
+        sudo argocd login $(cat /home/ec2-user/hostname.txt) --username admin --password $(cat /home/ec2-user/secret.txt) --insecure || { echo "Failed to login to Argo"; exit 1; } 
       
         # Update password in Argo CD
-        argocd account update-password --current-password $(cat secret.txt) --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
+        sudo argocd account update-password --current-password $(cat /home/ec2-user/secret.txt) --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
       
         # Log into Argo with a new password
-        argocd login $(cat hostname.txt) --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
+        sudo argocd login $(cat /home/ec2-user/hostname.txt) --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
       
         # Retrieve the name of the current Kubernetes context
-        ContextName=\$(kubectl config current-context) || { echo "Failed to get Kubernetes context"; exit 1; }
+        sudo ContextName=\$(kubectl config current-context) || { echo "Failed to get Kubernetes context"; exit 1; }
       
         # Add a cluster into Argo
-        argocd cluster add \$ContextName --yes || { echo "Failed to add cluster to Argo"; exit 1; }
+        sudo argocd cluster add \$ContextName --yes || { echo "Failed to add cluster to Argo"; exit 1; }
       
         # Apply Argo CD Application
         kubectl apply -f /home/ec2-user/my-app-argo-app.yaml || { echo "Failed to apply Argo CD application"; exit 1; }
