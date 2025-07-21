@@ -100,7 +100,7 @@ jobs:
           sleep 10
           done
           # Get the Load Balancer of Argo CD API Server URL
-          Argo_URL= $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          Argo_URL=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           # Access the Argo CD UI and get the password  
           Argo_OriginPW=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
           # Log into Argo with an originial password
@@ -117,7 +117,7 @@ jobs:
           done
           # Log into Argo with a new password 
           echo "Wait a few minutes to log into argo with a new password"
-          while ! argocd login Argo_URL --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} ; do
+          while ! argocd login $Argo_URL --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} ; do
           echo "A new password login for argo is not ready yet. Sleeping for 10 seconds..."
           sleep 10
           done
