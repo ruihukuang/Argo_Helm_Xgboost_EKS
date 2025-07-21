@@ -124,9 +124,19 @@ jobs:
           sleep 10
           done
           # Get the Load Balancer of Argo CD API Server URL
-          Argo_URL=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          echo "Wait a few minutes to retrieve the Load Balancer of Argo CD API Server"
+          while ! Argo_URL=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}') ; do
+          echo "Retrieving Argo CD API Server is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
+          echo $Argo_URL
           # Access the Argo CD UI and get the password  
-          Argo_OriginPW=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
+          echo "Wait a few minutes to retrieve the original password of Argo CD API Server"
+          while ! Argo_OriginPW=$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) ; do
+          echo "Retrieving the original password of Argo CD API Server is not ready yet. Sleeping for 10 seconds..."
+          sleep 10
+          done
+          echo "Retrieving the original password of Argo CD API Server is ready"
           # Log into Argo with an originial password
           echo "Wait a few minutes to log into argo with an original password"
           while ! argocd login $Argo_URL --username admin --password $Argo_OriginPW --insecure; do
