@@ -84,6 +84,7 @@ jobs:
         set -ex  # Enable command tracing and exit on error
         rm -rf cluster_ip.txt
         rm -rf patch_output.txt
+        rm -rf hostname.txt
         aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
         kubectl get nodes || { echo "Failed to get nodes"; exit 1; }
       
@@ -217,13 +218,13 @@ jobs:
         Argo_OriginPW=\$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) || { echo "Failed to get Argo password"; exit 1; }
       
         # Log into Argo with an original password
-        argocd login $b --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
+        argocd login $(cat hostname.txt) --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
       
         # Update password in Argo CD
         argocd account update-password --current-password \$Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
       
         # Log into Argo with a new password
-        argocd login $b --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
+        argocd login $(cat hostname.txt) --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
       
         # Retrieve the name of the current Kubernetes context
         ContextName=\$(kubectl config current-context) || { echo "Failed to get Kubernetes context"; exit 1; }
