@@ -18,7 +18,26 @@ jobs:
       with:
          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
          aws-region: ${{ secrets.REGION }}
-             
+
+    - name: Retrieve an EKS endpoint 
+      run: |
+        eks_endpoint=$(aws eks describe-cluster --name MyEKSCluster --query "cluster.endpoint" --output text)
+        echo "EKS_Endpoint=$eks_endpoint" >> $GITHUB_ENV
+        
+    - name: Update an EKS endpoint in a yaml file and create a update script
+      run: | 
+        echo "sed -i 's|server: .*|server: ${{ env.EKS_Endpoint }}|' my-app-argo-app.yaml" > update_script.sh
+
+    - name: Get matching image tags 
+      run: |
+        output=$(aws ecr-public describe-images --repository-name my_repo_xgboost_test --region us-east-1)
+        matching_images=$(echo "$output" | jq -r '.imageDetails[].imageTags[] | select(endswith("_xgboost"))')
+        echo "IMAGE_TAG=$matching_images" >> $GITHUB_ENV
+        
+    - name: Update a docker image in a yaml file and update the update script
+      run: | 
+        echo "sed -i 's|value: .*|value: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:${{ env.IMAGE_TAG }}|' my-app-argo-app.yaml" > update_script.sh
+        
     - name: Get Bastion Host Public IP
       id: bastion_ip
       run: |
@@ -34,33 +53,13 @@ jobs:
       env:
         BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
       run: |
+        scp -o StrictHostKeyChecking=no -i key.pem update_script.sh ec2-user@$BASTION_IP:/home/ec2-user/
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
           set -x  # Enable command tracing
           aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
           kubectl get nodes
           kubectl create namespace argocd
           kubectl create namespace my-app-test
-          #Retrieve EKS Endpoint
-          echo "Waiting for an EKS Endpoint to be ready..."
-          while ! eks_endpoint=$(aws eks describe-cluster --name MyEKSCluster --query "cluster.endpoint" --output text); do
-          echo "An EKS Endpoint is not ready yet. Sleeping for 10 seconds..."
-          sleep 10
-          done
-          echo "EKS Endpoint: $eks_endpoint"
-          # update a yaml file after download it
-          echo "Waiting for uploading a yaml file for an argo application to be ready..."
-          while ! wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml; do
-          echo "A yaml file for an argo application is not ready yet. Sleeping for 10 seconds..."
-          sleep 10
-          done
-          sudo chmod 755 my-app-argo-app.yaml
-          sudo sed -i "s|server: '.*'|server: '$eks_endpoint'|" my-app-argo-app.yaml
-
-          output=$(aws ecr-public describe-images --repository-name my_repo_xgboost_test --region us-east-1 )
-          matching_images=$(echo "$output" | jq -r '.imageDetails[].imageTags[] | select(endswith("_xgboost"))')
-          sudo sed -i "s|value: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:'.*'|value: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:'$matching_images'|" my-app-argo-app.yaml
-       
-          echo "YAML file updated successfully."
           #Install Argo CLI
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
