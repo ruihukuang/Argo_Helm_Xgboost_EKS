@@ -154,12 +154,12 @@ jobs:
   
           # Retry logic if CLUSTER_IP is empty
           RETRIES=10
-          INTERVAL=30  # 30 seconds
+
   
           for ((i=1; i<=RETRIES; i++)); do
             if [ -z "$CLUSTER_IP" ]; then
-              echo "Cluster IP is empty. Retrying in $INTERVAL seconds... (Attempt $i)"
-              sleep $INTERVAL
+              echo "Cluster IP is empty. Retrying in 30 seconds... (Attempt $i)"
+              sleep 30
       
               # Run the kubectl command again to check the Cluster IP
               kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.clusterIP}' > cluster_ip.txt
@@ -209,7 +209,7 @@ jobs:
             break
           else
             echo "Waiting for Load Balancer hostname... (Attempt $i)"
-            sleep 10
+            sleep 30
           fi
         done || { echo "Failed to get Argo URL after waiting"; exit 1; }
       
