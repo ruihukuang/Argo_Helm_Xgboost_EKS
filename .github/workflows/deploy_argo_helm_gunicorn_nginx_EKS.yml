@@ -69,8 +69,16 @@ jobs:
           set -ex  # Enable command tracing and exit on error
           aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
           kubectl get nodes
-          kubectl create namespace argocd
-          kubectl create namespace my-app-test
+          if ! kubectl get namespace argocd; then
+            kubectl create namespace argocd
+          else
+            echo "Namespace argocd already exists"
+          fi
+          if ! kubectl get namespace my-app-test; then
+            kubectl create namespace my-app-test
+          else
+            echo "Namespace my-app-test already exists"
+          fi
           sudo chmod +x /home/ec2-user/update_script.sh
           sudo bash /home/ec2-user/update_script.sh
           echo "Contents of my-app-argo-app.yaml:"
