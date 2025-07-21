@@ -151,31 +151,24 @@ jobs:
         # Check the exit status of the background process
         if [ $? -eq 0 ]; then
           # Read the output from the file
-          CLUSTER_IP=$(cat cluster_ip.txt)
-          echo "Initial Cluster IP: $CLUSTER_IP"
-  
-          # Retry logic if CLUSTER_IP is empty
-          RETRIES=10
-
-  
-          for ((i=1; i<=RETRIES; i++)); do
-            if [ -z "$CLUSTER_IP" ]; then
-              echo "Cluster IP is empty. Retrying in 30 seconds... (Attempt $i)"
-              sleep 30
-              CLUSTER_IP=$(cat cluster_ip.txt)
-            else
-              echo "Cluster IP found: $CLUSTER_IP"
-              break
-            fi
-          done
-  
-          if [ -z "$CLUSTER_IP" ]; then
-            echo "Failed to retrieve Cluster IP after $RETRIES attempts."
-          fi
+          Init_CLUSTER_IP=$(cat cluster_ip.txt)
+          echo "Initial Cluster IP: $Init_CLUSTER_IP"
         else
           echo "Command failed."
           exit 1
         fi
+
+        echo "Waiting for Cluster IP of argo server..."
+        for i in {1..60}; do
+          CLUSTER_IP=$(cat cluster_ip.txt)
+          if [ -n "$CLUSTER_IP" ]; then
+            echo "Cluster IP of argo server is ready: $CLUSTER_IP"
+            break
+          else
+            echo "Waiting for Cluster IP of argo server... (Attempt $i)"
+            sleep 30
+          fi
+        done || { echo "Failed to get Cluster IP of argo server after waiting"; exit 1; }
         
         # Expose Argo CD API Server via an AWS Load Balancer
         # Attempt to patch the service
