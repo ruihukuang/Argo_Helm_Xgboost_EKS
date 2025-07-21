@@ -58,12 +58,27 @@ jobs:
       env:
          BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
       run: | 
-        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP "wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml"
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP "
+          if [ -f /home/ec2-user/my-app-argo-app.yaml ]; then
+            echo 'File exists. Deleting...'
+            rm /home/ec2-user/my-app-argo-app.yaml
+          else
+            echo 'File does not exist. Proceeding to download...'
+          fi
+          wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
+        "
         
     - name: SSH to Bastion Host and Update Kubeconfig
       env:
         BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
       run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP "
+          if [ -f /home/ec2-user/update_script.sh ]; then
+            echo 'update_script.sh exists. Deleting...'
+            rm /home/ec2-user/update_script.sh
+          else
+            echo 'update_script.sh does not exist. Proceeding to copy...'
+          fi"
         scp -o StrictHostKeyChecking=no -i key.pem update_script.sh ec2-user@$BASTION_IP:/home/ec2-user/
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
           set -ex  # Enable command tracing and exit on error
