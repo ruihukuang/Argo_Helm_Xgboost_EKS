@@ -202,12 +202,15 @@ jobs:
             sleep 30
           fi
         done
+
+        a=\$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        echo \"The hostname is: \$a\"
       
         # Access the Argo CD UI and get the password
         Argo_OriginPW=\$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) || { echo "Failed to get Argo password"; exit 1; }
       
         # Log into Argo with an original password
-        argocd login $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}') --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
+        argocd login \$a --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
       
         # Update password in Argo CD
         argocd account update-password --current-password \$Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
