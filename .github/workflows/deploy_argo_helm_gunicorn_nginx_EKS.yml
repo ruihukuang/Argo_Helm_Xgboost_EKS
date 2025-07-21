@@ -150,35 +150,23 @@ jobs:
 
         # Check the exit status of the background process
         if [ $? -eq 0 ]; then
-          # Read the output from the file
-          Init_CLUSTER_IP=$(cat cluster_ip.txt)
-          echo "Initial Cluster IP: $Init_CLUSTER_IP"
+          echo "Command to check if a cluster ip exists succeeded."
         else
           echo "Command to check if a cluster ip exists failed."
           exit 1
         fi
 
-          # Check if the file exists before attempting to read it
-        if [ -f cluster_ip.txt ]; then
-          echo 'cluster_ip.txt exists. Reading contents...'
-          cat cluster_ip.txt
-        else
-          echo 'cluster_ip.txt does not exist. Please ensure it is created before reading.'
-          exit 1
-        fi
-
-        
-        echo "Waiting for Cluster IP of argo server..."
-        for i in {1..60}; do
-          CLUSTER_IP=$(cat cluster_ip.txt)
-          if [ -n "$CLUSTER_IP" ]; then
-            echo "Cluster IP of argo server is ready: $CLUSTER_IP"
+        # Check if the file exists and is not empty
+        for attempt in {1..10}; do
+          if [ -s cluster_ip.txt ]; then
+            echo 'cluster_ip.txt has content. Displaying contents:'
+            cat cluster_ip.txt
             break
           else
-            echo "Waiting for Cluster IP of argo server... (Attempt $i)"
+            echo 'cluster_ip.txt is empty or does not exist. Retrying in 30 seconds... (Attempt $attempt)'
             sleep 30
           fi
-        done || { echo "Failed to get Cluster IP of argo server after waiting"; exit 1; }
+        done
         
         # Expose Argo CD API Server via an AWS Load Balancer
         # Attempt to patch the service
@@ -202,25 +190,24 @@ jobs:
           # Display the error output from the file
           cat patch_output.txt
         fi
-      
-        # Get the Load Balancer of Argo CD API Server URL
-        echo "Waiting for Load Balancer hostname..."
-        for i in {1..60}; do
-          Argo_URL=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-          if [ -n "$Argo_URL" ]; then
-            echo "Load Balancer hostname is ready: $Argo_URL"
+        
+        # Check if the file exists and is not empty
+        for attempt in {1..10}; do
+          if [ -s patch_output.txt ]; then
+            echo 'patch_output.txt has content. Displaying contents:'
+            cat patch_output.txt
             break
           else
-            echo "Waiting for Load Balancer hostname... (Attempt $i)"
+            echo 'patch_output.txt is empty or does not exist. Retrying in 30 seconds... (Attempt $attempt)'
             sleep 30
           fi
-        done || { echo "Failed to get Argo URL after waiting"; exit 1; }
+        done
       
         # Access the Argo CD UI and get the password
         Argo_OriginPW=\$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) || { echo "Failed to get Argo password"; exit 1; }
       
         # Log into Argo with an original password
-        argocd login \$Argo_URL --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
+        argocd login $(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}') --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
       
         # Update password in Argo CD
         argocd account update-password --current-password \$Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
