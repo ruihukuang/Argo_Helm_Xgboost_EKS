@@ -215,13 +215,13 @@ jobs:
         echo "The hostname is: $b"
         
         # Access the Argo CD UI and get the password
-        Argo_OriginPW=\$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d) || { echo "Failed to get Argo password"; exit 1; }
+        kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d > secret.txt
       
         # Log into Argo with an original password
-        argocd login $(cat hostname.txt) --username admin --password \$Argo_OriginPW --insecure || { echo "Failed to login to Argo"; exit 1; }
+        argocd login $(cat hostname.txt) --username admin --password $(cat secret.txt) --insecure || { echo "Failed to login to Argo"; exit 1; } 
       
         # Update password in Argo CD
-        argocd account update-password --current-password \$Argo_OriginPW --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
+        argocd account update-password --current-password $(cat secret.txt) --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
       
         # Log into Argo with a new password
         argocd login $(cat hostname.txt) --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
