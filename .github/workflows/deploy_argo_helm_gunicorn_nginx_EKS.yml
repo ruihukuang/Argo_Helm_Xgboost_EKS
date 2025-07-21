@@ -94,6 +94,7 @@ jobs:
           helm repo add argo https://argoproj.github.io/argo-helm
           helm repo update
           #Install Argo CD Using Helm
+          helm uninstall argocd --namespace argocd
           helm install argocd argo/argo-cd --namespace argocd --create-namespace
           # Wait for argocd-server to be deployed 
           echo "Waiting for argocd-server to be ready..."
