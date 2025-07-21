@@ -139,10 +139,6 @@ jobs:
         # Wait for argocd-server service to be ready
         echo "Waiting for the argocd-server service to be ready..."
 
-        # Set a timeout duration (in seconds)
-        TIMEOUT=600  # 10 minutes
-        START_TIME=$(date +%s)
-
         # Loop to check the service readiness
         while true; do
         # Check if the service has an external IP assigned
@@ -153,13 +149,6 @@ jobs:
           else
             echo "argocd-server service is not ready with CLUSTER IP yet. Checking again in 30 seconds..."
             sleep 30
-          fi
-           # Check if the timeout has been reached
-          CURRENT_TIME=$(date +%s)
-          ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
-          if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
-            echo "argocd-server service not ready with CLUSTER IP after waiting for 10 minutes"
-            exit 1
           fi
         done 
       
