@@ -37,7 +37,12 @@ jobs:
     - name: Update a docker image in a yaml file and update the update script
       run: | 
         echo "sed -i 's|value: .*|value: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:$IMAGE_TAG|' my-app-argo-app.yaml" >> update_script.sh
-        
+
+    - name: Print update script content
+      run: |
+        echo "Contents of update_script.sh:"
+        cat update_script.sh
+    
     - name: Get Bastion Host Public IP
       id: bastion_ip
       run: |
@@ -68,6 +73,8 @@ jobs:
           kubectl create namespace my-app-test
           sudo chmod +x /home/ec2-user/update_script.sh
           sudo bash /home/ec2-user/update_script.sh
+          echo "Contents of my-app-argo-app.yaml:"
+          sudo cat /home/ec2-user/my-app-argo-app.yaml
           #Install Argo CLI
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
