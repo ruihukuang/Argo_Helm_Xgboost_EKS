@@ -139,14 +139,16 @@ jobs:
 
         # Wait for 5 minutes
         echo "Waiting for 5 minutes to allow patching to take effect..."
-        sleep 300  # 300 seconds = 5 minutes
+        sleep 180  # 300 seconds = 3 minutes
 
         # Check if the patching was successful
-        if kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.type}' | grep -q 'LoadBalancer'; then
-          echo "Patching svc argocd-server to LoadBalancer was successful"
+        SERVICE_TYPE=$(kubectl get svc argocd-server -n argocd -o jsonpath='{.spec.type}')
+        if [ "$SERVICE_TYPE" = "LoadBalancer" ]; then
+          echo "The service type of argocd-server is LoadBalancer."
         else
-          echo "Failed to patch svc to LoadBalancer type after waiting"
+          echo "The service type of argocd-server is not LoadBalancer."
           exit 1
+        fi
       
         # Get the Load Balancer of Argo CD API Server URL
         echo "Waiting for Load Balancer hostname..."
