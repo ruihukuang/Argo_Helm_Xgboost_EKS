@@ -28,6 +28,22 @@ jobs:
           echo "Deleting load balancer: $lb"
           aws elb delete-load-balancer --load-balancer-name $lb
         done
+        
+    - name: Delete Bastion Stack
+      run: |
+        echo "Deleting Bastion stack..."
+        aws cloudformation delete-stack --stack-name BastionHostStack
+
+        echo "Waiting for Bastion stack deletion to complete..."
+        aws cloudformation wait stack-delete-complete --stack-name BastionHostStack
+       
+    - name: Delete EKS Stack
+      run: |
+        echo "Deleting EKS stack..."
+        aws cloudformation delete-stack --stack-name MyEKSCluster
+
+        echo "Waiting for EKS stack deletion to complete..."
+        aws cloudformation wait stack-delete-complete --stack-name MyEKSCluster
 
     - name: Find VPC ID
       run: |
@@ -71,19 +87,3 @@ jobs:
             echo "No non-default security group found."
           fi
         done
-        
-    - name: Delete Bastion Stack
-      run: |
-        echo "Deleting Bastion stack..."
-        aws cloudformation delete-stack --stack-name BastionHostStack
-
-        echo "Waiting for Bastion stack deletion to complete..."
-        aws cloudformation wait stack-delete-complete --stack-name BastionHostStack
-       
-    - name: Delete EKS Stack
-      run: |
-        echo "Deleting EKS stack..."
-        aws cloudformation delete-stack --stack-name MyEKSCluster
-
-        echo "Waiting for EKS stack deletion to complete..."
-        aws cloudformation wait stack-delete-complete --stack-name MyEKSCluster
