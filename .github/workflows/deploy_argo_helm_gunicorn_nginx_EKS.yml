@@ -26,7 +26,7 @@ jobs:
         
     - name: Update an EKS endpoint in a yaml file and create a update script
       run: | 
-        echo "sed -i 's|server: .*|server: ${{ env.EKS_Endpoint }}|' my-app-argo-app.yaml" > update_script.sh
+        echo "sed -i 's|server: .*|server: $EKS_Endpoint|' my-app-argo-app.yaml" > update_script.sh
 
     - name: Get matching image tags 
       run: |
@@ -36,7 +36,7 @@ jobs:
         
     - name: Update a docker image in a yaml file and update the update script
       run: | 
-        echo "sed -i 's|value: .*|value: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:${{ env.IMAGE_TAG }}|' my-app-argo-app.yaml" > update_script.sh
+        echo "sed -i 's|value: .*|value: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:$IMAGE_TAG|' my-app-argo-app.yaml" >> update_script.sh
         
     - name: Get Bastion Host Public IP
       id: bastion_ip
@@ -49,6 +49,12 @@ jobs:
         echo "${{ secrets.SSH_KEY }}" > key.pem
         chmod 600 key.pem
 
+    - name: SSH to Bastion host and load a yaml file 
+      env:
+         BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
+      run: | 
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP " wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml"
+        
     - name: SSH to Bastion Host and Update Kubeconfig
       env:
         BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
@@ -60,6 +66,7 @@ jobs:
           kubectl get nodes
           kubectl create namespace argocd
           kubectl create namespace my-app-test
+          bash /home/ec2-user/update_script.sh
           #Install Argo CLI
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
