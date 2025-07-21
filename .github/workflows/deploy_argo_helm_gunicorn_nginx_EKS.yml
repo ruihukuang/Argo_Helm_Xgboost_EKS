@@ -61,12 +61,13 @@ jobs:
       run: |
         scp -o StrictHostKeyChecking=no -i key.pem update_script.sh ec2-user@$BASTION_IP:/home/ec2-user/
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
-          set -x  # Enable command tracing
+          set -ex  # Enable command tracing and exit on error
           aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
           kubectl get nodes
           kubectl create namespace argocd
           kubectl create namespace my-app-test
-          bash /home/ec2-user/update_script.sh
+          sudo chmod +x /home/ec2-user/update_script.sh
+          sudo bash /home/ec2-user/update_script.sh
           #Install Argo CLI
           sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
           sudo chmod +x /usr/local/bin/argocd
