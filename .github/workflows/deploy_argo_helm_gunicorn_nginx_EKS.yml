@@ -121,7 +121,17 @@ jobs:
         helm install argocd argo/argo-cd --namespace argocd --create-namespace || { echo "Failed to install Argo CD"; exit 1; }
       
         # Wait for argocd-server to be deployed
-        kubectl get deployment argocd-server -n argocd -o jsonpath='{.status.readyReplicas}' | grep -q '1' || { echo "argocd-server not ready"; exit 1; }
+          # Wait for argocd-server to be deployed
+        echo "Waiting for argocd-server to be ready..."
+        for i in {1..60}; do
+          if kubectl get deployment argocd-server -n argocd -o jsonpath='{.status.readyReplicas}' | grep -q '1'; then
+            echo "argocd-server is ready"
+            break
+          else
+            echo "Waiting for argocd-server to be ready... (Attempt \$i)"
+            sleep 10
+          fi
+        done || { echo "argocd-server not ready after waiting"; exit 1; }
       
         # Expose Argo CD API Server via an AWS Load Balancer
         kubectl patch svc argocd-server -n argocd --type='merge' -p '{"spec": {"type": "LoadBalancer"}}' || { echo "Failed to patch svc"; exit 1; }
