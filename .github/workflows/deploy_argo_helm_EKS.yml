@@ -302,39 +302,5 @@ jobs:
             sleep 30
           fi
         done
-
-        kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' > hostname.txt
         
-        a=\$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-        echo \"The hostname is: \$a\"
-
-        result=\$( aws elb describe-load-balancers --region ap-southeast-2 --query 'LoadBalancerDescriptions[*].DNSName' --output text)
-        echo \"The load balancer is: \$result\"
-
-
-        # Try logging into Argo CD with the original password
-        if argocd login xxx --username admin --password $(cat /home/ec2-user/secret.txt) --insecure; then
-          echo "Logged in with the original password."
-          echo "Update the password"
-          argocd account update-password --current-password \$(cat /home/ec2-user/secret.txt) --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
-        else
-          echo "Failed to login with the original password. Trying with the new password..."
-  
-          # Try logging into Argo CD with the new password
-          if argocd login xxx --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} --insecure; then
-            echo "Logged in with the new password."
-          else
-            echo "Failed to login with the new Argo password."
-            exit 1
-          fi
-        fi
-           
-      
-        # Add a cluster into Argo
-        sudo argocd cluster add \$ContextName --yes || { echo "Failed to add cluster to Argo"; exit 1; }
-      
-        # Apply Argo CD Application
-        kubectl apply -f /home/ec2-user/my-app-argo-app.yaml || { echo "Failed to apply Argo CD application"; exit 1; }
-      
-
         EOF
