@@ -136,16 +136,12 @@ jobs:
           kubectl create namespace argocd || { echo "Failed to create namespace argocd"; exit 1; }
         else
           echo "Namespace argocd already exists"
-          kubectl delete namespace argocd || { echo "Failed to delete namespace argocd"; exit 1; }
-          kubectl create namespace argocd || { echo "Failed to create namespace argocd after deleting this namespace"; exit 1; }
         fi
       
         if ! kubectl get namespace my-app-test; then
           kubectl create namespace my-app-test || { echo "Failed to create namespace my-app-test"; exit 1; }
         else
           echo "Namespace my-app-test already exists"
-          kubectl delete namespace my-app-test || { echo "Failed to delete namespace my-app-test"; exit 1; }
-          kubectl create namespace my-app-test || { echo "Failed to create namespace my-app-test after deleting this namespace"; exit 1; }
         fi
       
         sudo chmod +x /home/ec2-user/update_script.sh
@@ -312,34 +308,19 @@ jobs:
         a=\$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
         echo \"The hostname is: \$a\"
 
-
-        REGION=${{ secrets.REGION }}
-
-        echo $REGION
         
-        sudo sed -i "s/\*\*\*/$REGION/" hostname.txt
-
-        # Print contents of the files
-        echo "Hostname: $(cat /home/ec2-user/hostname.txt)"
-        echo "Password: $(cat /home/ec2-user/secret.txt)"
-
-        # Update a by replacing *** with the value of REGION
-        b=\$(echo "\$a" | sed "s/\*\*\*/$REGION/")
-
-        # Output the updated value of a
-        echo \"Updated a: \$b\"
         
         # Access the Argo CD UI and get the password
         kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d > secret.txt
       
         # Log into Argo with an original password
-        argocd login \$(cat /home/ec2-user/hostname.txt)\ --username admin --password \$(cat /home/ec2-user/secret.txt) --insecure || { echo "Failed to login to Argo"; exit 1; } 
+        argocd login a6568b00361234dbcad17944df88d3b3-1182343919.ap-southeast-2.elb.amazonaws.com --username admin --password \$(cat /home/ec2-user/secret.txt) --insecure || { echo "Failed to login to Argo"; exit 1; } 
       
         # Update password in Argo CD
         argocd account update-password --current-password \$(cat /home/ec2-user/secret.txt) --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
       
         # Log into Argo with a new password
-        argocd login \$(cat /home/ec2-user/hostname.txt) --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
+        argocd login a6568b00361234dbcad17944df88d3b3-1182343919.ap-southeast-2.elb.amazonaws.com --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to login with new Argo password"; exit 1; }
       
         # Retrieve the name of the current Kubernetes context
         ContextName=\$(kubectl config current-context) || { echo "Failed to get Kubernetes context"; exit 1; }
