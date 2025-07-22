@@ -63,7 +63,7 @@ jobs:
             echo 'File exists. Deleting...'
             rm /home/ec2-user/my-app-argo-app.yaml
           else
-            echo 'File does not exist. Proceeding to download...'
+            echo 'File does not exist. Proceeding to upload...'
           fi
           wget https://raw.githubusercontent.com/ruihukuang/Argo_Helm_Xgboost_EKS/main/my-app-argo-app.yaml
         "
@@ -89,6 +89,27 @@ jobs:
         sudo rm -rf /home/ec2-user/get_helm.sh
         aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
         kubectl get nodes || { echo "Failed to get nodes"; exit 1; }
+
+        # Install metrics-server
+        # Check if metrics-server exists in kube-system
+        if ! kubectl get deployment metrics-server -n kube-system &> /dev/null; then
+          echo "metrics-server not found. Installing metrics-server..."
+  
+          # Attempt to install metrics-server
+          kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml || { 
+            echo "Failed to install metrics-server"; 
+            exit 1; 
+          }
+
+          echo "metrics-server installation initiated."
+        else
+          echo "metrics-server already exists in kube-system."
+        fi 
+      
+        # Show metrics
+        kubectl get deployment metrics-server -n kube-system -o jsonpath='{.status.readyReplicas}' | grep -q '1' || { echo "metrics-server not ready"; exit 1; }
+        kubectl top nodes || { echo "Failed to show node metrics"; exit 1; }
+        kubectl top pods --all-namespaces || { echo "Failed to show pod metrics"; exit 1; }
       
         if ! kubectl get namespace argocd; then
           kubectl create namespace argocd || { echo "Failed to create namespace argocd"; exit 1; }
@@ -113,23 +134,80 @@ jobs:
         sudo cat /home/ec2-user/my-app-argo-app.yaml || { echo "Failed to read my-app-argo-app.yaml"; exit 1; }
       
         # Install Argo CLI
-        sudo rm /usr/local/bin/argocd
-        sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-        sudo chmod +x /usr/local/bin/argocd || { echo "Failed to install Argo CLI"; exit 1; }
+        # Check if Argo CLI exists
+        if ! command -v argocd &> /dev/null; then
+          echo "Argo CLI not found. Installing Argo CLI..."
+  
+          # Download and install Argo CLI
+          sudo curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+  
+          # Make it executable
+          sudo chmod +x /usr/local/bin/argocd || { 
+            echo "Failed to install Argo CLI"; 
+          exit 1; 
+         }
+  
+          echo "Argo CLI installed successfully."
+        else
+          echo "Argo CLI already exists."
+        fi
       
         # Install Helm
-        sudo rm /usr/local/bin/helm
-        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-        sudo chmod 700 get_helm.sh
-        ./get_helm.sh || { echo "Failed to install Helm"; exit 1; }
+        # Check if Helm is installed
+        if ! command -v helm &> /dev/null; then
+          echo "Helm not found. Installing Helm..."
+  
+          # Download the Helm installation script
+          curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+  
+          # Make the script executable
+          sudo chmod 700 get_helm.sh
+  
+           # Run the installation script
+           ./get_helm.sh || { 
+           echo "Failed to install Helm"; 
+           exit 1; 
+          }
+  
+          echo "Helm installed successfully."
+        else
+          echo "Helm is already installed."
+        fi
       
         # Add the Argo CD Helm Repository
-        helm repo add argo https://argoproj.github.io/argo-helm
-        helm repo update || { echo "Failed to update Helm repo"; exit 1; }
+        # Check if the Helm repo "argo" exists
+        if ! helm repo list | grep -q 'argo'; then
+          echo "Helm repo 'argo' not found. Adding repo..."
+  
+          # Add the Helm repo
+          helm repo add argo https://argoproj.github.io/argo-helm
+  
+          # Update the Helm repo
+          helm repo update || { 
+            echo "Failed to update Helm repo"; 
+            exit 1; 
+          }
+  
+          echo "Helm repo 'argo' added successfully."
+        else
+          echo "Helm repo 'argo' already exists."
+        fi
       
         # Install Argo CD Using Helm
-        helm uninstall argocd --namespace argocd || true  # Ignore errors if not installed
-        helm install argocd argo/argo-cd --namespace argocd --create-namespace || { echo "Failed to install Argo CD"; exit 1; }
+        # Check if Argo CD is installed using Helm
+        if ! helm list -n argocd | grep -q 'argocd'; then
+          echo "Argo CD not found. Installing Argo CD..."
+  
+          # Install Argo CD using Helm
+          helm install argocd argo/argo-cd --namespace argocd --create-namespace || { 
+            echo "Failed to install Argo CD"; 
+            exit 1; 
+          }
+  
+          echo "Argo CD installed successfully."
+        else
+          echo "Argo CD is already installed."
+        fi
       
         # Wait for argocd-server deployment to be ready
         echo "Waiting for argocd-server deployment to be ready..."
@@ -161,7 +239,7 @@ jobs:
           exit 1
         fi
 
-        # Check if the file exists and is not empty
+        # Check if the file exists and is not empty 10 times and sleep 30 seconds each time
         for attempt in {1..10}; do
           if [ -s cluster_ip.txt ]; then
             echo 'cluster_ip.txt has content. Displaying contents:'
@@ -196,7 +274,7 @@ jobs:
           cat patch_output.txt
         fi
         
-        # Check if the file exists and is not empty
+        # Check if the file exists and is not empty 10 times and sleep 30 seconds each time
         for attempt in {1..10}; do
           if [ -s patch_output.txt ]; then
             echo 'patch_output.txt has content. Displaying contents:'
@@ -245,11 +323,5 @@ jobs:
         # Apply Argo CD Application
         kubectl apply -f /home/ec2-user/my-app-argo-app.yaml || { echo "Failed to apply Argo CD application"; exit 1; }
       
-        # Install metrics-server
-        kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml || { echo "Failed to install metrics-server"; exit 1; }
-      
-        # Show metrics
-        kubectl get deployment metrics-server -n kube-system -o jsonpath='{.status.readyReplicas}' | grep -q '1' || { echo "metrics-server not ready"; exit 1; }
-        kubectl top nodes || { echo "Failed to show node metrics"; exit 1; }
-        kubectl top pods --all-namespaces || { echo "Failed to show pod metrics"; exit 1; }
+
         EOF
