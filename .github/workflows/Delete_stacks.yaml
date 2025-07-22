@@ -29,13 +29,13 @@ jobs:
           aws elb delete-load-balancer --load-balancer-name $lb
         done
 
-    - name: List and Remove Network Interfaces
+    - name: Delete Bastion Stack
       run: |
-        interfaces=$(aws ec2 describe-network-interfaces --query 'NetworkInterfaces[*].NetworkInterfaceId' --output text)
-        for interface in $interfaces; do
-          aws ec2 detach-network-interface --attachment-id $(aws ec2 describe-network-interfaces --network-interface-ids $interface --query 'NetworkInterfaces[0].Attachment.AttachmentId' --output text)
-          aws ec2 delete-network-interface --network-interface-id $interface
-        done
+        echo "Deleting Bastion stack..."
+        aws cloudformation delete-stack --stack-name BastionHostStack
+
+        echo "Waiting for Bastion stack deletion to complete..."
+        aws cloudformation wait stack-delete-complete --stack-name BastionHostStack
 
     - name: Find VPC ID
       run: |
@@ -114,13 +114,6 @@ jobs:
           fi
         done
 
-    - name: Delete Bastion Stack
-      run: |
-        echo "Deleting Bastion stack..."
-        aws cloudformation delete-stack --stack-name BastionHostStack
-
-        echo "Waiting for Bastion stack deletion to complete..."
-        aws cloudformation wait stack-delete-complete --stack-name BastionHostStack
        
     - name: Delete EKS Stack
       run: |
