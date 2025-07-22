@@ -1,0 +1,60 @@
+name: Deploy to Argo APP into EKS
+on:
+ workflow_dispatch:
+
+permissions:
+      id-token: write   # This is required for requesting the JWT
+      contents: write
+      
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+  
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+         role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_ID }}:role/${{ secrets.ROLE_NAME }}
+         aws-region: ${{ secrets.REGION }}
+
+    - name: Get Bastion Host Public IP
+      id: bastion_ip
+      run: |
+        bastion_ip=$(aws cloudformation describe-stacks --stack-name BastionHostStack --query "Stacks[0].Outputs[?OutputKey=='BastionPublicIP'].OutputValue" --output text)
+        echo "::set-output name=ip::$bastion_ip"
+
+    - name: SSH to Bastion Host and Update Kubeconfig
+      env:
+        BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP << EOF
+        set -ex  # Enable command tracing and exit on error
+        aws eks update-kubeconfig --region ${{ secrets.REGION }} --name MyEKSCluster
+        kubectl get nodes || { echo "Failed to get nodes"; exit 1; }    
+        # Try logging into Argo CD with the original password
+        if argocd login ${{ secrets.ARGOCD_hostname }} --username admin --password ${{ secrets.ARGOCD_OriginalPw }} --insecure; then
+          echo "Logged in with the original password."
+          echo "Update the password"
+          argocd account update-password --current-password ${{ secrets.ARGOCD_OriginalPw }} --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
+        else
+          echo "Failed to login with the original password. Trying with the new password..."
+  
+          # Try logging into Argo CD with the new password
+          if argocd login ${{ secrets.ARGOCD_hostname }} --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} --insecure; then
+            echo "Logged in with the new password."
+          else
+            echo "Failed to login with the new Argo password."
+            exit 1
+          fi
+        fi
+
+
+        # Add a cluster into Argo
+        sudo argocd cluster add "arn:aws:eks:${{ secrets.REGION }}:${{ secrets.ACCOUNT_ID }}:cluster/MyEKSCluster" --yes || { echo "Failed to add cluster to Argo"; exit 1; }
+      
+        # Apply Argo CD Application
+        kubectl apply -f /home/ec2-user/my-app-argo-app.yaml || { echo "Failed to apply Argo CD application"; exit 1; }
+      
+        EOF
