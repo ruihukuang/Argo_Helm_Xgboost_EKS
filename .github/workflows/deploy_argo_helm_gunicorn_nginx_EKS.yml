@@ -313,7 +313,7 @@ jobs:
 
 
         # Try logging into Argo CD with the original password
-        if argocd login a6568b00361234dbcad17944df88d3b3-1182343919.ap-southeast-2.elb.amazonaws.com --username admin --password $(cat /home/ec2-user/secret.txt) --insecure; then
+        if argocd login xxx --username admin --password $(cat /home/ec2-user/secret.txt) --insecure; then
           echo "Logged in with the original password."
           echo "Update the password"
           argocd account update-password --current-password \$(cat /home/ec2-user/secret.txt) --new-password ${{ secrets.ARGOCD_NEW_PASSWORD }} || { echo "Failed to update Argo password"; exit 1; }
@@ -321,7 +321,7 @@ jobs:
           echo "Failed to login with the original password. Trying with the new password..."
   
           # Try logging into Argo CD with the new password
-          if argocd login a6568b00361234dbcad17944df88d3b3-1182343919.ap-southeast-2.elb.amazonaws.com --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} --insecure; then
+          if argocd login xxx --username admin --password ${{ secrets.ARGOCD_NEW_PASSWORD }} --insecure; then
             echo "Logged in with the new password."
           else
             echo "Failed to login with the new Argo password."
@@ -329,8 +329,6 @@ jobs:
           fi
         fi
            
-        # Retrieve the name of the current Kubernetes context
-        ContextName=\$(kubectl config current-context) || { echo "Failed to get Kubernetes context"; exit 1; }
       
         # Add a cluster into Argo
         sudo argocd cluster add \$ContextName --yes || { echo "Failed to add cluster to Argo"; exit 1; }
