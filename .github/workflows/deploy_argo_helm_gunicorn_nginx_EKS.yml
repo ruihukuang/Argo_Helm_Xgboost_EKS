@@ -120,7 +120,6 @@ jobs:
           # Check if metrics-server has at least one ready replica
           if kubectl get deployment metrics-server -n kube-system -o jsonpath='{.status.readyReplicas}' | grep -q '1'; then
             echo "metrics-server is ready."
-            exit 0
           else
             echo "metrics-server not ready. Retrying in 30 seconds..."
             sleep 30
