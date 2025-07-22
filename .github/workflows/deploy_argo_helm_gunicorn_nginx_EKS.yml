@@ -213,10 +213,16 @@ jobs:
         a=\$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
         echo \"The hostname is: \$a\"
 
-        b=$(ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP "
+        b=\$(ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP "
         kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
         ")
-        echo "The hostname is: $b"
+        echo "The hostname after ssh is: \$b"
+
+        REGION=${{ secrets.REGION }}
+
+        echo $REGION
+        
+        sudo sed -i "s/\*\*\*/$REGION/" hostname.txt
         
         # Access the Argo CD UI and get the password
         kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d > secret.txt
