@@ -312,10 +312,6 @@ jobs:
         a=\$(kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
         echo \"The hostname is: \$a\"
 
-        b=\$(ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@$BASTION_IP "
-        kubectl get svc argocd-server -n argocd -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-        ")
-        echo "The hostname after ssh is: \$b"
 
         REGION=${{ secrets.REGION }}
 
