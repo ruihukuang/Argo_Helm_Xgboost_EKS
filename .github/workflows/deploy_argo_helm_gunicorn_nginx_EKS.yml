@@ -124,7 +124,10 @@ jobs:
           else
             echo "metrics-server not ready. Retrying in 30 seconds..."
             sleep 30
-          fi || { echo "metrics-server not ready"; exit 1; }
+          fi 
+          # Increment the attempt counter
+          attempt=\$((attempt + 1))
+        done || { echo "metrics-server not ready"; exit 1; }
           
         kubectl top nodes || { echo "Failed to show node metrics"; exit 1; }
         kubectl top pods --all-namespaces || { echo "Failed to show pod metrics"; exit 1; }
