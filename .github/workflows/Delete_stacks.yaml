@@ -28,22 +28,14 @@ jobs:
           echo "Deleting load balancer: $lb"
           aws elb delete-load-balancer --load-balancer-name $lb
         done
-        
-    - name: Delete Bastion Stack
-      run: |
-        echo "Deleting Bastion stack..."
-        aws cloudformation delete-stack --stack-name BastionHostStack
 
-        echo "Waiting for Bastion stack deletion to complete..."
-        aws cloudformation wait stack-delete-complete --stack-name BastionHostStack
-       
-    - name: Delete EKS Stack
+    - name: List and Remove Network Interfaces
       run: |
-        echo "Deleting EKS stack..."
-        aws cloudformation delete-stack --stack-name MyEKSCluster
-
-        echo "Waiting for EKS stack deletion to complete..."
-        aws cloudformation wait stack-delete-complete --stack-name MyEKSCluster
+        interfaces=$(aws ec2 describe-network-interfaces --query 'NetworkInterfaces[*].NetworkInterfaceId' --output text)
+        for interface in $interfaces; do
+          aws ec2 detach-network-interface --attachment-id $(aws ec2 describe-network-interfaces --network-interface-ids $interface --query 'NetworkInterfaces[0].Attachment.AttachmentId' --output text)
+          aws ec2 delete-network-interface --network-interface-id $interface
+        done
 
     - name: Find VPC ID
       run: |
@@ -54,8 +46,42 @@ jobs:
       id: list_sg
       run: |
         aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${{ env.VPC_id }}" --query "SecurityGroups[*].{Name:GroupName,Id:GroupId,Description:Description}" --output json > security_groups.json
+
+    - name : Remove rules and Delete Security groups related to network interfaces 
+      run: |
+        sg_ids_NT=$(jq -r '.[] | select(.Name != "default" and (.Description | contains("my-app-test/nginx-service") | not) and (.Description | contains("argocd/argocd-server") | not)) | .Id' security_groups.json)
+        for sg_id_NT in $sg_ids_NT; do
+          if [ -n "$sg_id_NT" ]; then
+            echo "Checking rules for security group: $sg_id_NT"
+
+            # Check and remove inbound rules
+            inbound_rules_NT=$(aws ec2 describe-security-groups --group-ids $sg_id_NT --query "SecurityGroups[0].IpPermissions" --output json)
+            if [ "$inbound_rules_NT" != "[]" ]; then
+              echo "Removing inbound rules from security group: $sg_id_NT"
+              aws ec2 revoke-security-group-ingress --group-id $sg_id_NT --protocol all --port all --cidr 0.0.0.0/0 || true
+            else
+              echo "No inbound rules to remove."
+            fi
+
+            # Check and remove outbound rules
+            outbound_rules_NT=$(aws ec2 describe-security-groups --group-ids $sg_id_NT --query "SecurityGroups[0].IpPermissionsEgress" --output json)
+            if [ "$outbound_rules_NT" != "[]" ]; then
+              echo "Removing outbound rules from security group: $sg_id_NT"
+              aws ec2 revoke-security-group-egress --group-id $sg_id_NT --protocol all --port all --cidr 0.0.0.0/0 || true
+            else
+              echo "No outbound rules to remove for Security groups related to network interfaces."
+            fi
+
+            # Delete the security group
+            echo "Deleting security group: $sg_id_NT"
+            aws ec2 delete-security-group --group-id $sg_id_NT
+          else
+            echo "No non-default security group for Security groups related to network interfaces found."
+          fi
+        done
+
     
-    - name: Remove Rules and Delete Security Groups(need to delete allec2 Network interfaces, then delete related security group related to this before deleting security group of argo server. Then the vpc could be deleted when deleting stack )
+    - name: Remove Rules and Delete Security Groups related to my-app-test/nginx-service and argocd/argocd-server
       run: |
         sg_ids=$(jq -r '.[] | select(.Name!="default" and (.Description | contains("my-app-test/nginx-service") or contains("argocd/argocd-server"))) | .Id' security_groups.json)
         for sg_id in $sg_ids; do
@@ -87,3 +113,20 @@ jobs:
             echo "No non-default security group found."
           fi
         done
+
+    - name: Delete Bastion Stack
+      run: |
+        echo "Deleting Bastion stack..."
+        aws cloudformation delete-stack --stack-name BastionHostStack
+
+        echo "Waiting for Bastion stack deletion to complete..."
+        aws cloudformation wait stack-delete-complete --stack-name BastionHostStack
+       
+    - name: Delete EKS Stack
+      run: |
+        echo "Deleting EKS stack..."
+        aws cloudformation delete-stack --stack-name MyEKSCluster
+
+        echo "Waiting for EKS stack deletion to complete..."
+        aws cloudformation wait stack-delete-complete --stack-name MyEKSCluster
+
