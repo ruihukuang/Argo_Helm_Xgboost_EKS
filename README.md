@@ -69,3 +69,5 @@ network_io_bytes_total{direction="out"} 1960.0
 # TYPE network_io_bytes_created gauge
 network_io_bytes_created{direction="in"} 1.7532462665754356e+09
 network_io_bytes_created{direction="out"} 1.7532462665754535e+09
+
+
