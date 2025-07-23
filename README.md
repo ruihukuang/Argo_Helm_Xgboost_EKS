@@ -6,8 +6,8 @@ Examples for results
 {"status":"ok"}
 
 [ec2-user@ip-10-0-3-132 ~]$ curl -H 'Content-Type: application/json' \
->       -d '{"feature1": [1, 2, 3], "feature2": [4, 5, 6],"label": [7, 8, 9]}' \
->       -X POST http://a5e9a36b630d341c19294779f3efed14-1326651114.ap-southeast-2.elb.amazonaws.com/invocations
+   -d '{"feature1": [1, 2, 3], "feature2": [4, 5, 6],"label": [7, 8, 9]}' \
+   -X POST http://a5e9a36b630d341c19294779f3efed14-1326651114.ap-southeast-2.elb.amazonaws.com/invocations
 [7.598736763000488,8.0,8.401262283325195]
 
 
