@@ -25,6 +25,11 @@ jobs:
         bastion_ip=$(aws cloudformation describe-stacks --stack-name BastionHostStack --query "Stacks[0].Outputs[?OutputKey=='BastionPublicIP'].OutputValue" --output text)
         echo "::set-output name=ip::$bastion_ip"
 
+    - name: Create SSH key file
+      run: |
+        echo "${{ secrets.SSH_KEY }}" > key.pem
+        chmod 600 key.pem
+
     - name: SSH to Bastion Host and Update Kubeconfig
       env:
         BASTION_IP: ${{ steps.bastion_ip.outputs.ip }}
