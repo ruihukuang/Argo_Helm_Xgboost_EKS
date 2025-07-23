@@ -3,7 +3,7 @@ nginx:
   worker_connections: 1024
 app:
   namespace: my-app-test
-  image: {{ .Values.app.image }}
+  image: public.ecr.aws/v3z5t7a3/my_repo_xgboost_test:c60dd6b72dda23f50661fa18c65a30822c1cfd37_xgboost
   replicas: 4
   resources:
     requests:
