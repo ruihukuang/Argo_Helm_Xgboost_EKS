@@ -57,7 +57,7 @@ jobs:
 
 
         # Add a cluster into Argo
-        sudo argocd cluster add ${{ secrets.ARGOCD_context }} --yes || { echo "Failed to add cluster to Argo"; exit 1; }
+        argocd cluster add ${{ secrets.ARGOCD_context }} --yes || { echo "Failed to add cluster to Argo"; exit 1; }
       
         # Apply Argo CD Application
         kubectl apply -f /home/ec2-user/my-app-argo-app.yaml || { echo "Failed to apply Argo CD application"; exit 1; }
