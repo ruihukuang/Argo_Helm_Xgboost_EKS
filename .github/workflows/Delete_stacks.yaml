@@ -37,89 +37,41 @@ jobs:
         echo "Waiting for Bastion stack deletion to complete..."
         aws cloudformation wait stack-delete-complete --stack-name BastionHostStack
 
-    - name: Find VPC ID
+    - name: Attempt to Delete CloudFormation Stack
+      id: delete_stack
       run: |
-        VPC_id=$(aws ec2 describe-vpcs --filters "Name=cidr,Values=10.0.0.0/16" --query "Vpcs[*].VpcId" --output text)
-        echo "VPC_id=$VPC_id" >> $GITHUB_ENV
+         set -e
+         echo "Attempting to delete CloudFormation stack..."
+         if ! aws cloudformation delete-stack --stack-name MyEKSCluster; then
+           echo "Failed to delete CloudFormation stack."
+           exit 1
+         fi
+         echo "Waiting for CloudFormation stack deletion to complete..."
+         aws cloudformation wait stack-delete-complete --stack-name MyEKSCluster
+         echo "CloudFormation stack deleted successfully."
 
-    - name: List Security Groups
-      id: list_sg
+    - name: Remove Security Group if Stack Deletion Fails
+      if: failure()
       run: |
-        aws ec2 describe-security-groups --filters "Name=vpc-id,Values=${{ env.VPC_id }}" --query "SecurityGroups[*].{Name:GroupName,Id:GroupId,Description:Description}" --output json > security_groups.json
-
-    - name : Remove rules and Delete Security groups related to network interfaces 
-      run: |
-        sg_ids_NT=$(jq -r '.[] | select(.Name != "default" and (.Description | contains("my-app-test/nginx-service") | not) and (.Description | contains("argocd/argocd-server") | not)) | .Id' security_groups.json)
-        for sg_id_NT in $sg_ids_NT; do
-          if [ -n "$sg_id_NT" ]; then
-            echo "Checking rules for security group: $sg_id_NT"
-
-            # Check and remove inbound rules
-            inbound_rules_NT=$(aws ec2 describe-security-groups --group-ids $sg_id_NT --query "SecurityGroups[0].IpPermissions" --output json)
-            if [ "$inbound_rules_NT" != "[]" ]; then
-              echo "Removing inbound rules from security group: $sg_id_NT"
-              aws ec2 revoke-security-group-ingress --group-id $sg_id_NT --protocol all --port all --cidr 0.0.0.0/0 || true
-            else
-              echo "No inbound rules to remove."
-            fi
-
-            # Check and remove outbound rules
-            outbound_rules_NT=$(aws ec2 describe-security-groups --group-ids $sg_id_NT --query "SecurityGroups[0].IpPermissionsEgress" --output json)
-            if [ "$outbound_rules_NT" != "[]" ]; then
-              echo "Removing outbound rules from security group: $sg_id_NT"
-              aws ec2 revoke-security-group-egress --group-id $sg_id_NT --protocol all --port all --cidr 0.0.0.0/0 || true
-            else
-              echo "No outbound rules to remove for Security groups related to network interfaces."
-            fi
-
-            # Delete the security group
-            echo "Deleting security group: $sg_id_NT"
-            aws ec2 delete-security-group --group-id $sg_id_NT
-          else
-            echo "No non-default security group for Security groups related to network interfaces found."
-          fi
+        echo "Searching for security groups with specific descriptions and names not equal to 'default'..."
+          
+        # Fetch security groups matching the criteria
+        security_groups=$(aws ec2 describe-security-groups --query "SecurityGroups[?(contains(Description, 'my-app-test/nginx-service') || contains(Description, 'argocd/argocd-server')) && GroupName != 'default'].GroupId" --output text)
+          
+        # Loop through each security group and delete it
+        for sg in $security_groups; do
+          echo "Deleting security group: $sg"
+          aws ec2 delete-security-group --group-id $sg || echo "Failed to delete security group: $sg"
         done
 
-    
-    - name: Remove Rules and Delete Security Groups related to my-app-test/nginx-service and argocd/argocd-server
+    - name: Retry Deleting CloudFormation Stack
+      if: failure()
       run: |
-        sg_ids=$(jq -r '.[] | select(.Name!="default" and (.Description | contains("my-app-test/nginx-service") or contains("argocd/argocd-server"))) | .Id' security_groups.json)
-        for sg_id in $sg_ids; do
-          if [ -n "$sg_id" ]; then
-            echo "Checking rules for security group: $sg_id"
-
-            # Check and remove inbound rules
-            inbound_rules=$(aws ec2 describe-security-groups --group-ids $sg_id --query "SecurityGroups[0].IpPermissions" --output json)
-            if [ "$inbound_rules" != "[]" ]; then
-              echo "Removing inbound rules from security group: $sg_id"
-              aws ec2 revoke-security-group-ingress --group-id $sg_id --protocol all --port all --cidr 0.0.0.0/0 || true
-            else
-              echo "No inbound rules to remove."
-            fi
-
-            # Check and remove outbound rules
-            outbound_rules=$(aws ec2 describe-security-groups --group-ids $sg_id --query "SecurityGroups[0].IpPermissionsEgress" --output json)
-            if [ "$outbound_rules" != "[]" ]; then
-              echo "Removing outbound rules from security group: $sg_id"
-              aws ec2 revoke-security-group-egress --group-id $sg_id --protocol all --port all --cidr 0.0.0.0/0 || true
-            else
-              echo "No outbound rules to remove."
-            fi
-
-            # Delete the security group
-            echo "Deleting security group: $sg_id"
-            aws ec2 delete-security-group --group-id $sg_id
-          else
-            echo "No non-default security group found."
+          echo "Retrying to delete CloudFormation stack..."
+          if ! aws cloudformation delete-stack --stack-name MyEKSCluster; then
+            echo "Failed to delete CloudFormation stack on retry."
+            exit 1
           fi
-        done
-
-       
-    - name: Delete EKS Stack
-      run: |
-        echo "Deleting EKS stack..."
-        aws cloudformation delete-stack --stack-name MyEKSCluster
-
-        echo "Waiting for EKS stack deletion to complete..."
-        aws cloudformation wait stack-delete-complete --stack-name MyEKSCluster
-
+          echo "Waiting for CloudFormation stack deletion to complete on retry..."
+          aws cloudformation wait stack-delete-complete --stack-name MyEKSCluster
+          echo "CloudFormation stack deleted successfully on retry."        
