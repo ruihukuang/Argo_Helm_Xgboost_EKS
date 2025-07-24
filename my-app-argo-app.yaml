@@ -11,7 +11,7 @@ spec:
     path: my-app  # Path to your Helm chart in the repository
     helm:
       valueFiles:
-        - my-app/values.yaml  # Path to your custom values.yaml file in the Git repository
+        - values.yaml  # Path to your custom values.yaml file in the Git repository
       parameters:
         - name: app.image
           value: xxx
