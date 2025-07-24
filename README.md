@@ -1,6 +1,6 @@
 # Argo_Helm_Xgboost_EKS
 
-Examples for results 
+Examples for results for EC2 bastion host
 
 [ec2-user@ip-10-0-3-132 ~]$ curl http://a5e9a36b630d341c19294779f3efed14-1326651114.ap-southeast-2.elb.amazonaws.com/ping
 {"status":"ok"}
@@ -37,3 +37,16 @@ network_io_bytes_total{direction="in"} 1606.0
 network_io_bytes_total{direction="out"} 1960.0
 network_io_bytes_created{direction="in"} 1.7532462665754356e+09
 network_io_bytes_created{direction="out"} 1.7532462665754535e+09
+
+Argo UI for app deployments
+
+<img width="1850" height="917" alt="image" src="https://github.com/user-attachments/assets/d373b8c8-3ccb-4657-b583-74c635d7a099" />
+
+Flask app health check 
+<img width="1044" height="182" alt="image" src="https://github.com/user-attachments/assets/9d1f7f6d-854e-45c0-8699-efaabc511921" />
+
+Flask app metrics check 
+<img width="1869" height="323" alt="image" src="https://github.com/user-attachments/assets/3e7dbba5-aa15-40a6-a429-98b280e30e98" />
+
+
+
