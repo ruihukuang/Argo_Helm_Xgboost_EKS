@@ -1,6 +1,6 @@
 # Argo_Helm_Xgboost_EKS
 
-This repo is to deploy a docker image of xgboost model to EKS using Argo, Helm and Github action. 
+This repo is to deploy nginx as a load balancer and a guincorn app based on a docker image of xgboost model in ECR to EKS using Argo, Helm, kubectl on the bastion host and Github action. 
 
 Examples for results for EC2 bastion host
 
