@@ -1,7 +1,6 @@
 # Argo_Helm_Xgboost_EKS
 
-This repo is to deploy nginx as a load balancer and guincorn apps based on a docker image of xgboost model in ECR to EKS using Argo, Helm, kubectl on the bastion host and Github action. The URL of this nginx load balaner is used to receive requests from a source AWS account. Th guincorn apps are used to process requests, do calcuation based on a xgboost model and provide prediction results. 
-
+This repo is to deploy nginx as a load balancer and guincorn apps based on a docker image of xgboost model in ECR to EKS using Argo, Helm, kubectl on the bastion host and Github action.
 Examples for results for EC2 bastion host
 
 [ec2-user@ip-10-0-3-132 ~]$ curl http://a5e9a36b630d341c19294779f3efed14-1326651114.ap-southeast-2.elb.amazonaws.com/ping
