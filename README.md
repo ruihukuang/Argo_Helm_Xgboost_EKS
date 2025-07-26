@@ -5,7 +5,7 @@ This repo is to deploy nginx as a load balancer and guincorn apps based on a doc
 
 
 
-Results:
+Results
 
 [ec2-user@ip-10-0-3-132 ~]$ curl http://a5e9a36b630d341c19294779f3efed14-1326651114.ap-southeast-2.elb.amazonaws.com/ping
 {"status":"ok"}
